@@ -9,15 +9,15 @@ PenningTrap::PenningTrap(double B0, double V0, double d, std::vector<Particle>)
 // Definitions of copy constructor, ...
 
 // Definitions of other class methods, e.g. 
-double electric_field(arguments)
+double PenningTrap::electric_field(arguments)
 {
 
 }
-double magnetic_field(arguments);
+double PenningTrap::magnetic_field(arguments)
 {
 
 }
-double force(arguments);
+double PenningTrap::force(arguments)
 {
 
 }

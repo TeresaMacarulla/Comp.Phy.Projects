@@ -2,6 +2,8 @@
 #define __PenningTrap_hpp__
 
 #include <armadillo>
+#include <vector>
+#include "Particle.hpp"
 
 class PenningTrap 
 {

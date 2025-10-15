@@ -1,15 +1,22 @@
 #include "PenningTrap.hpp"
 
 // Definitions of constructors
-PenningTrap::PenningTrap(double B0, double V0, double d, std::vector<Particle>)
+PenningTrap::PenningTrap(double B0_in, double V0_in, double d_in, std::vector<Particle> particles_in)
+: B0(B0_in), V0(V0_in), d(d_in), particles(particles_in)
 {
-  // ...
+  //double B0_ = B0;                      
+  //double V0_ = V0;                      
+  //double d_ = d;                       
+  //std::vector<Particle> p = particles; // Storage the particles
 }
 
+// Add a particle to the trap
 void PenningTrap::add_particle(Particle p_in)
 {
+  particles.push_back(p_in);
 }
 
+// External electric field at point r=(x,y,z)
 arma::vec PenningTrap::external_E_field(arma::vec r)
 {
   const double coeff = V0 / (d * d);
@@ -20,7 +27,8 @@ arma::vec PenningTrap::external_E_field(arma::vec r)
   return E;
 }
 
-arma::vec PenningTrap::external_B_field(arma::vec r);
+// External magnetic field at point r=(x,y,z)
+arma::vec PenningTrap::external_B_field(arma::vec r)
 {
   arma::vec B(3, arma::fill::none);
   B(0) = 0.0;
@@ -29,42 +37,62 @@ arma::vec PenningTrap::external_B_field(arma::vec r);
   return B;
 }
 
-arma::vec PenningTrap::force_particle(int i, int j);
+// Force on particle_i from particle_j
+arma::vec PenningTrap::force_particle(int i, int j)
 {
-
+  double ke = 1.38935333e5;
+  arma::vec r_diff = particles[i].r - particles[j].r;
+  double r_norm = arma::norm(r_diff);  // |r_i - r_j|
+  arma::vec F = ke * particles[i].q * particles[j].q * r_diff / std::pow(r_norm, 3);
+  return F;
 }
 
-arma::vec PenningTrap::total_force_external(arma::vec r, arma::vec v);
+// The total force on particle_i from the external fields
+arma::vec PenningTrap::total_force_external(arma::vec r, arma::vec v)
 {
   // Obtain E and B fields from previous functions 
   arma::vec E = external_E_field(r);
   arma::vec B = external_B_field(r);
 
   // Calculate Lorentz force: F = q (E + v × B)
-  arma::vec F = Particla[1].q * (E + arma::cross(v, B));
+  arma::vec F = particles[1].q * (E + arma::cross(v, B));
 
   return F;
 }
 
-arma::vec PenningTrap::total_force_particles(int i);
+// The total force on particle_i from the other particles
+arma::vec PenningTrap::total_force_particles(int i)
 {
-}
+  double ke = 1.38935333e5;
+  arma::vec F(3, arma::fill::zeros);
 
-arma::vec PenningTrap::total_force(int i);
-{
+  for (int j=0; j<=particles.size() ; ++j) {
+    if (j == i) {
+        continue;   // Don't calculate force on particle_i from particle_i
+    }
+    F = F + force_particle(i,j);
+  }
   
+  return F;
 }
 
-void PenningTrap::evolve_RK4(double h);
+// The total force on particle_i from both external fields and other particles
+arma::vec PenningTrap::total_force(arma::vec r, arma::vec v, int i)
+{
+  arma::vec F = total_force_external(r, v) + total_force_particles(i);
+  return F;
+}
+
+void PenningTrap::evolve_RK4(double h)
 {
   // Number of particles in the Penning Trap: n
-  const std::size_t n = Particle.size();
+  const std::size_t n = particles.size();
 
   // Previous condition 
   std::vector<arma::vec> r0(n), v0(n);
   for (std::size_t i = 0; i < n; ++i) {
-      r0[i] = Particle[i].r;
-      v0[i] = Particle[i].v;
+      r0[i] = particles[i].r;
+      v0[i] = particles[i].v;
   }
 
   // k for r and v (each one k(i) is arma::vec with 3 components)
@@ -74,7 +102,7 @@ void PenningTrap::evolve_RK4(double h);
   // ---- k1 ----
   for (std::size_t i = 0; i < n; ++i) {
     kr1[i] = h * v0[i];
-    kv1[i] = h * (total_force(r0[i],v0[i]) / Particle[i].m);
+    kv1[i] = h * (total_force(r0[i],v0[i],i) / particles[i].m);
   }
 
   // ---- k2 ----
@@ -83,7 +111,7 @@ void PenningTrap::evolve_RK4(double h);
       r12[i] = r0[i] + 0.5 * kr1[i];
       v12[i] = v0[i] + 0.5 * kv1[i];
       kr2[i] = h * v12[i];
-      kv2[i] = h * (total_force(r12[i],v12[i]) / Particle[i].m);
+      kv2[i] = h * (total_force(r12[i],v12[i],i) / particles[i].m);
   }
 
   // ---- k3 ----
@@ -92,7 +120,7 @@ void PenningTrap::evolve_RK4(double h);
     r32[i] = r0[i] + 0.5 * kr2[i];
     v32[i] = v0[i] + 0.5 * kv2[i];
     kr3[i] = h * v32[i];
-    kv3[i] = h * (total_force(r32[i],v32[i]) / Particle[i].m);
+    kv3[i] = h * (total_force(r32[i],v32[i],i) / particles[i].m);
   }
 
   // ---- k4 ----
@@ -101,29 +129,29 @@ void PenningTrap::evolve_RK4(double h);
     r4[i] = r0[i] + kr3[i];
     v4[i] = v0[i] + kv3[i];
     kr4[i] = h * v4[i];
-    kv4[i] = h * (total_force(r4[i],v4[i]) / Particle[i].m);
+    kv4[i] = h * (total_force(r4[i],v4[i],i) / particles[i].m);
   }
 
   // ---- final actualization ----
   for (std::size_t i = 0; i < n; ++i) {
-    Particle[i].r = r0[i] + (kr1[i] + 2.0*kr2[i] + 2.0*kr3[i] + kr4[i]) / 6.0;
-    Particle[i].v = v0[i] + (kv1[i] + 2.0*kv2[i] + 2.0*kv3[i] + kv4[i]) / 6.0;
+    particles[i].r = r0[i] + (kr1[i] + 2.0*kr2[i] + 2.0*kr3[i] + kr4[i]) / 6.0;
+    particles[i].v = v0[i] + (kv1[i] + 2.0*kv2[i] + 2.0*kv3[i] + kv4[i]) / 6.0;
   }
 }
 
-void PenningTrap::evolve_forward_Euler(double h);
+void PenningTrap::evolve_forward_Euler(double h)
 {
-  const std::size_t n = Particle.size();
+  const std::size_t n = particles.size();
 
   // Previous velocity condition 
-  std::vector<arma::vec> v_old(n);
+  std::vector<arma::vec> v_old(n), r_old(n);
   for (std::size_t i = 0; i < n; ++i){
-    v_old[i] = Particle[i].v;
-    r_old[i] = Particle[i].r;
+    v_old[i] = particles[i].v;
+    r_old[i] = particles[i].r;
   } 
 
   for (std::size_t i = 0; i < n; ++i) {
-    Particle[i].v = v_old[i] + h * (total_force(r_old[i],v_old[i]) / Particle[i].m);
-    Particle[i].r = r_old[i] + h * v_old[i];
+    particles[i].v = v_old[i] + h * (total_force(r_old[i],v_old[i],i) / particles[i].m);
+    particles[i].r = r_old[i] + h * v_old[i];
   }
 }

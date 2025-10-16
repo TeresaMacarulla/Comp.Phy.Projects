@@ -3,6 +3,7 @@
 
 #include <armadillo>
 #include <vector>
+#include <cmath>
 #include "Particle.hpp"
 
 class PenningTrap 
@@ -10,7 +11,12 @@ class PenningTrap
 
 public:
 
-  PenningTrap(double B0 = 96.5, double V0 = 2.41e6, double d = 500.0, std::vector<Particle>);
+  double B0;
+  double V0;
+  double d;
+  std::vector<Particle> particles;
+
+  PenningTrap(double B0_in, double V0_in, double d_in, std::vector<Particle> particles_in);
 
   // Add a particle to the trap
   void add_particle(Particle p_in);
@@ -31,7 +37,7 @@ public:
   arma::vec total_force_particles(int i);
 
   // The total force on particle_i from both external fields and other particles
-  arma::vec total_force(int i);
+  arma::vec total_force(arma::vec r, arma::vec v, int i);
 
   // Evolve the system one time step (dt) using Runge-Kutta 4th order
   void evolve_RK4(double h);

@@ -2,12 +2,9 @@
 
 // Definitions of constructors
 PenningTrap::PenningTrap(double B0_in, double V0_in, double d_in, std::vector<Particle> particles_in)
-: B0(B0_in), V0(V0_in), d(d_in), particles(particles_in)
+: B0(B0_in), V0(V0_in), d(d_in), particles(particles_in) 
 {
-  //double B0_ = B0;                      
-  //double V0_ = V0;                      
-  //double d_ = d;                       
-  //std::vector<Particle> p = particles; // Storage the particles
+  
 }
 
 // Add a particle to the trap
@@ -40,22 +37,29 @@ arma::vec PenningTrap::external_B_field(arma::vec r)
 // Force on particle_i from particle_j
 arma::vec PenningTrap::force_particle(int i, int j)
 {
+  arma::vec r_diff(3, arma::fill::zeros);
+  arma::vec F(3, arma::fill::zeros);
+
   double ke = 1.38935333e5;
-  arma::vec r_diff = particles[i].r - particles[j].r;
+  r_diff = particles[i].r - particles[j].r;
   double r_norm = arma::norm(r_diff);  // |r_i - r_j|
-  arma::vec F = ke * particles[i].q * particles[j].q * r_diff / std::pow(r_norm, 3);
+  F = ke * particles[i].q * particles[j].q * r_diff / std::pow(r_norm, 3);
   return F;
 }
 
 // The total force on particle_i from the external fields
 arma::vec PenningTrap::total_force_external(arma::vec r, arma::vec v)
 {
+  arma::vec E(3, arma::fill::zeros);
+  arma::vec B(3, arma::fill::zeros);
+  arma::vec F(3, arma::fill::zeros);
+
   // Obtain E and B fields from previous functions 
-  arma::vec E = external_E_field(r);
-  arma::vec B = external_B_field(r);
+  E = external_E_field(r);
+  B = external_B_field(r);
 
   // Calculate Lorentz force: F = q (E + v × B)
-  arma::vec F = particles[1].q * (E + arma::cross(v, B));
+  F = particles[0].q * (E + arma::cross(v, B));
 
   return F;
 }
@@ -79,7 +83,16 @@ arma::vec PenningTrap::total_force_particles(int i)
 // The total force on particle_i from both external fields and other particles
 arma::vec PenningTrap::total_force(arma::vec r, arma::vec v, int i)
 {
-  arma::vec F = total_force_external(r, v) + total_force_particles(i);
+  arma::vec F(3, arma::fill::zeros);
+  const std::size_t n = particles.size();
+
+  if (n==1){
+    arma::vec F = total_force_external(r, v);
+  }
+  else {
+    arma::vec F = total_force_external(r, v) + total_force_particles(i);
+  }
+
   return F;
 }
 

@@ -8,9 +8,13 @@ class Particle
 
 public:
 
-  Particle(double q, double m, arma::vec v, arma::vec r);
+  double q;
+  double m;
+  arma::vec v;
+  arma::vec r;
 
-  void some_function(arguments);
+  Particle(double q_in, double m_in, arma::vec r_in, arma::vec v_in);
+
 
 }; 
 

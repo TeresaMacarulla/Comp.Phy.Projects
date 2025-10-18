@@ -37,13 +37,13 @@ public:
   arma::vec total_force_particles(int i);
 
   // The total force on particle_i from both external fields and other particles
-  arma::vec total_force(arma::vec r, arma::vec v, int i);
+  arma::vec total_force(arma::vec r, arma::vec v, int i, int inter = 1);
 
   // Evolve the system one time step (dt) using Runge-Kutta 4th order
-  void evolve_RK4(double h);
+  void evolve_RK4(double h, int inter = 1);
 
   // Evolve the system one time step (dt) using Forward Euler
-  void evolve_forward_Euler(double h);
+  void evolve_forward_Euler(double h, int inter = 1);
 
 }; 
 

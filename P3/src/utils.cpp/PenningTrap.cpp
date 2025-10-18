@@ -10,7 +10,9 @@ PenningTrap::PenningTrap(double B0_in, double V0_in, double d_in, std::vector<Pa
 // Add a particle to the trap
 void PenningTrap::add_particle(Particle p_in)
 {
-  particles.push_back(p_in);
+  
+  this->particles.push_back(p_in);
+
 }
 
 // External electric field at point r=(x,y,z)
@@ -41,7 +43,9 @@ arma::vec PenningTrap::force_particle(int i, int j)
   arma::vec F(3, arma::fill::zeros);
 
   double ke = 1.38935333e5;
-  r_diff = particles[i].r - particles[j].r;
+  r_diff(0) = particles[i].r(0)- particles[j].r(0);
+  r_diff(1) = particles[i].r(1)- particles[j].r(1);
+  r_diff(2) = particles[i].r(2)- particles[j].r(2);
   double r_norm = arma::norm(r_diff);  // |r_i - r_j|
   F = ke * particles[i].q * particles[j].q * r_diff / std::pow(r_norm, 3);
   return F;
@@ -60,7 +64,6 @@ arma::vec PenningTrap::total_force_external(arma::vec r, arma::vec v)
 
   // Calculate Lorentz force: F = q (E + v × B)
   F = particles[0].q * (E + arma::cross(v, B));
-
   return F;
 }
 
@@ -70,33 +73,33 @@ arma::vec PenningTrap::total_force_particles(int i)
   double ke = 1.38935333e5;
   arma::vec F(3, arma::fill::zeros);
 
-  for (int j=0; j<=particles.size() ; ++j) {
+  for (int j=0; j<particles.size() ; ++j) {
     if (j == i) {
-        continue;   // Don't calculate force on particle_i from particle_i
+      continue;   // Don't calculate force on particle_i from particle_i
     }
     F = F + force_particle(i,j);
   }
-  
+
   return F;
 }
 
 // The total force on particle_i from both external fields and other particles
-arma::vec PenningTrap::total_force(arma::vec r, arma::vec v, int i)
+arma::vec PenningTrap::total_force(arma::vec r, arma::vec v, int i, int inter)
 {
   arma::vec F(3, arma::fill::zeros);
   const std::size_t n = particles.size();
 
-  if (n==1){
-    arma::vec F = total_force_external(r, v);
+  if (n==1 || inter==0){
+    F = total_force_external(r, v);
   }
-  else {
-    arma::vec F = total_force_external(r, v) + total_force_particles(i);
+  else if (n>1){
+    F = total_force_external(r, v) + total_force_particles(i);
   }
-
+  // std::cout << " rz " << r(2) << " Total Force " << F(2) << "\n";
   return F;
 }
 
-void PenningTrap::evolve_RK4(double h)
+void PenningTrap::evolve_RK4(double h, int inter)
 {
   // Number of particles in the Penning Trap: n
   const std::size_t n = particles.size();
@@ -115,7 +118,7 @@ void PenningTrap::evolve_RK4(double h)
   // ---- k1 ----
   for (std::size_t i = 0; i < n; ++i) {
     kr1[i] = h * v0[i];
-    kv1[i] = h * (total_force(r0[i],v0[i],i) / particles[i].m);
+    kv1[i] = h * (total_force(r0[i],v0[i],i,inter) / particles[i].m);
   }
 
   // ---- k2 ----
@@ -124,7 +127,7 @@ void PenningTrap::evolve_RK4(double h)
       r12[i] = r0[i] + 0.5 * kr1[i];
       v12[i] = v0[i] + 0.5 * kv1[i];
       kr2[i] = h * v12[i];
-      kv2[i] = h * (total_force(r12[i],v12[i],i) / particles[i].m);
+      kv2[i] = h * (total_force(r12[i],v12[i],i,inter) / particles[i].m);
   }
 
   // ---- k3 ----
@@ -133,7 +136,7 @@ void PenningTrap::evolve_RK4(double h)
     r32[i] = r0[i] + 0.5 * kr2[i];
     v32[i] = v0[i] + 0.5 * kv2[i];
     kr3[i] = h * v32[i];
-    kv3[i] = h * (total_force(r32[i],v32[i],i) / particles[i].m);
+    kv3[i] = h * (total_force(r32[i],v32[i],i,inter) / particles[i].m);
   }
 
   // ---- k4 ----
@@ -142,7 +145,7 @@ void PenningTrap::evolve_RK4(double h)
     r4[i] = r0[i] + kr3[i];
     v4[i] = v0[i] + kv3[i];
     kr4[i] = h * v4[i];
-    kv4[i] = h * (total_force(r4[i],v4[i],i) / particles[i].m);
+    kv4[i] = h * (total_force(r4[i],v4[i],i,inter) / particles[i].m);
   }
 
   // ---- final actualization ----
@@ -152,7 +155,7 @@ void PenningTrap::evolve_RK4(double h)
   }
 }
 
-void PenningTrap::evolve_forward_Euler(double h)
+void PenningTrap::evolve_forward_Euler(double h, int inter)
 {
   const std::size_t n = particles.size();
 
@@ -164,7 +167,7 @@ void PenningTrap::evolve_forward_Euler(double h)
   } 
 
   for (std::size_t i = 0; i < n; ++i) {
-    particles[i].v = v_old[i] + h * (total_force(r_old[i],v_old[i],i) / particles[i].m);
+    particles[i].v = v_old[i] + h * (total_force(r_old[i],v_old[i],i,inter) / particles[i].m);
     particles[i].r = r_old[i] + h * v_old[i];
   }
 }

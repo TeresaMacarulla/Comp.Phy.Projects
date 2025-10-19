@@ -1,26 +1,17 @@
 #include "PenningTrap.hpp"
 #include "PenningTrap_Vt.hpp"
-#include <armadillo>
-#include <fstream>
-#include <iomanip>
-#include <complex>
-#include <cmath>
+#include "Evolution.hpp"
 
 // COMPILING AND LINKING : g++ -std=c++17 -O2 -I include/utils.h src/main.cpp src/utils.cpp/*.cpp -larmadillo -o src/main.exe
 
-// línea 27 de r_error_32000.txt: 4.062500000000e-02 1.379656516560e-03 1.380658828548e-03
-
-// Function declarations
-void evolution_rz(PenningTrap& trap, double T_us, int Nstep);
-void evolution_two(PenningTrap& trap, double T_us, int Nstep, int inter = 1);
-void evolution_RK4_Euler(PenningTrap& trap, double T_us, int Nstep);
-void evolution_nsteps(int n, PenningTrap& trap);
+// std::cout << " rz " << r(2) << " Total Force " << F(2) << "\n";
 
 int main() {
+
     // Define B0, V0 and d in the trap
     PenningTrap trap(96.5, 2.41e6, 500.0, {});
 
-    // Define B0, V0 and d in the trap. Let omegav and f values open.
+    // Define B0, V0 and d in the trap.
     PenningTrap_Vt trap_Vt(96.5, 2.41e6, 500.0, 0.1, 0.2, {});
 
     // Define charge, mass, initial r and initial v of both particles (Ca+)
@@ -31,200 +22,56 @@ int main() {
     arma::vec v2 = {0.0, 40.0, 5.0};
     Particle p2(1.0, 40.1, r2, v2);
 
-    //Add particles to the traps
+    // Add particles to the traps
     trap.add_particle(p1);
     trap.add_particle(p2);
 
-    trap_Vt.add_particle(p1);
-    trap_Vt.add_particle(p2);
+    // Make a copy of trap
+    //PenningTrap trap1 = trap;
 
     // Simulate a single particle and track z-direction movement
-    //evolution_rz(trap, 50.0, 1000);
+    //evolution_rz(trap1, 50.0, 1000);
 
     // Simulate two particles and track rx and ry movement 
-    //evolution_two(trap, 50.0, 1000, 0); // last input =0 (no interaction) or =1 (interaction)
+    //trap1 = trap;
+    //evolution_two(trap1, 50.0, 1000, 0); // last input =0 (no interaction) or =1 (interaction)
 
     // Compare analytical solution, RK4 and Euler for single particle
-    //evolution_nsteps(4000, trap);
+    //trap1 = trap;
+    //evolution_nsteps(4000, trap1);
 
-    // Count the number of particles inside trap_Vt
-    std::size_t n = trap_Vt.inside_particles();
-    std::cout << " numer of particles " << n << "\n";
+    // Fill trap_Vt with particles with randomly generated initial positions and velocities
+    fill_trap(trap_Vt, 0.1, 0.2, 100);
+  
+    // Try f amplitudes {0.1, 0.4, 0.7} for V0(y)
+    std::vector<double> f = {0.1, 0.4, 0.7};
+
+    // Loop through f elements
+    for (std::size_t i = 0; i < f.size(); ++i) {
+
+        trap_Vt.f = f[i];
+
+        // Output file 
+        std::string filename = "../scripts/trapped_vs_frequency" + std::to_string(f[i]) + ".txt";
+        std::ofstream out(filename);
+        out << std::scientific << std::setprecision(12);
+
+        for (double omegav = 0.2; omegav <= 2.5; omegav += 0.02) {
+    
+            trap_Vt.omegav = omegav;
+            PenningTrap_Vt trap_Vt1 = trap_Vt;
+
+            // Simulate 100 particles during 500 microseconds
+            std::size_t n_inside = evolution_many(trap_Vt, 500.0, 10000, 0);
+
+            out << omegav << " " << n_inside << " " << "\n";
+
+        }
+
+        out.close();
+
+    }
 
     return 0;
 }
 
-void evolution_rz(PenningTrap& trap, double T_us, int Nstep)
-{
-    // Compute RK4 time step h = T/N
-    const double h = T_us / Nstep;
-
-
-    // Open output file
-    std::ofstream out("../scripts/rz.txt");
-    out << std::scientific << std::setprecision(8);
-
-    // Write initial state (t = 0)
-    double t = 0.0;
-    out << t << "  " << trap.particles[0].r(2) << "\n";
-
-    // Main RK4 loop
-    for (int k = 0; k < Nstep; ++k) {
-        t += h; 
-        trap.evolve_RK4(h, 0);                    
-        out << t << "  " << trap.particles[0].r(2) << "\n";  // log r_z of particle 0
-    }
-
-    out.close();
-}
-
-void evolution_two(PenningTrap& trap, double T_us, int Nstep, int inter)
-{
-    // inter = 1 there are interactions between particles
-    // inter = 0 there are no interactions between particles
-
-    if (inter != 1 && inter != 0) {
-        std::cout << "Error: 'interaction' must be 1 or 0." << std::endl;
-        std::exit(EXIT_FAILURE);  
-    }
-
-    // Compute RK4 time step h = T/N
-    const double h = T_us / Nstep;
-
-    std::ofstream out1;
-    std::ofstream out2;
-    std::ofstream out3;
-
-    // Open output file depending on 'inter'
-    if (inter == 0) {
-        out1.open("../scripts/ry_rx_nointer.txt"); // File with ry and rx for both particles (no interactions)
-        out2.open("../scripts/rx_vx_nointer.txt"); // File with rx and vx for both particles (no interactions)
-        out3.open("../scripts/rz_vz_nointer.txt"); // File with rz and vz for both particles (no interactions)
-    } else {
-        out1.open("../scripts/ry_rx_yesinter.txt"); // File with ry and rx for both particles (with interactions)
-        out2.open("../scripts/rx_vx_yesinter.txt"); // File with rx and vx for both particles (with interactions)
-        out3.open("../scripts/rz_vz_yesinter.txt"); // File with rz and vz for both particles (with interactions)
-    }
-
-    out1 << std::scientific << std::setprecision(12);
-    out2 << std::scientific << std::setprecision(12);
-    out3 << std::scientific << std::setprecision(12);
-
-    // Write initial state (t = 0)
-    double t = 0.0;
-    out1 << t << "  " << trap.particles[0].r(0) << " "<< trap.particles[0].r(1) << " "<< trap.particles[1].r(0) << " "<<trap.particles[1].r(1) << "\n";
-    out2 << t << "  " << trap.particles[0].r(0) << " "<< trap.particles[0].v(0) << " "<< trap.particles[1].r(0) << " "<<trap.particles[1].v(0) << "\n";
-    out3 << t << "  " << trap.particles[0].r(2) << " "<< trap.particles[0].v(2) << " "<< trap.particles[1].r(2) << " "<<trap.particles[1].v(2) << "\n";
-
-    // Main RK4 loop
-    for (int k = 0; k < Nstep; ++k) {
-        t += h;
-        trap.evolve_RK4(h, inter);                     
-        out1 << t << "  " << trap.particles[0].r(0) << " "<< trap.particles[0].r(1) << " "<< trap.particles[1].r(0) << " "<<trap.particles[1].r(1) << "\n";
-        out2 << t << "  " << trap.particles[0].r(0) << " "<< trap.particles[0].v(0) << " "<< trap.particles[1].r(0) << " "<<trap.particles[1].v(0) << "\n";
-        out3 << t << "  " << trap.particles[0].r(2) << " "<< trap.particles[0].v(2) << " "<< trap.particles[1].r(2) << " "<<trap.particles[1].v(2) << "\n";  
-    }
-
-    out1.close();
-    out2.close();
-    out3.close();
-}
-
-void evolution_RK4_Euler(PenningTrap& trap, double T_us, int Nstep)
-{
-    // For RK4 evolution
-    PenningTrap trap_RK4 = trap;
-
-    // For Euler evolution
-    PenningTrap trap_Euler = trap;
-
-    // Read initial conditions from the trap (first particle) -----
-    const auto& P  = trap.particles[0];
-    const double q = P.q;
-    const double m = P.m;
-
-    const double x0  = P.r(0);
-    const double y0  = P.r(1);        
-    const double z0  = P.r(2);
-
-    const double vx0 = P.v(0);        
-    const double vy0 = P.v(1);        
-    const double vz0 = P.v(2);        
-
-    const double B0  = trap.B0;
-    const double V0  = trap.V0;
-    const double d   = trap.d;
-
-    // Derived frequencies -----
-    const double omega0 = q * B0 / m;
-    const double omegaz2 = 2.0 * q * V0 / (m * d * d);
-    const double omegaz  = std::sqrt(std::max(0.0, omegaz2));
-    const double disc = std::max(0.0, 1.0 - 2.0 * omegaz2 / (omega0 * omega0));
-    const double omega_plus  = 0.5 * omega0 * (1.0 + std::sqrt(disc));
-    const double omega_minus = 0.5 * omega0 * (1.0 - std::sqrt(disc));
-
-    // A± 
-    const double denom = (omega_minus - omega_plus);
-    const double Aplus  = (vy0 + omega_minus * x0) / denom;
-    const double Aminus = -(vy0 + omega_plus  * x0) / denom;
-
-    // Time step 
-    const double h = T_us / static_cast<double>(Nstep);
-
-    // Output file 
-    std::string filename = "../scripts/r_error_" + std::to_string(Nstep) + ".txt";
-    std::ofstream out(filename);
-    out << std::scientific << std::setprecision(12);
-
-    // Precompute imaginary unit 
-    const std::complex<double> I(0.0, 1.0);
-
-    // Loop over steps
-    for (int k = 0; k <= Nstep; ++k) {
-        const double t = k * h;
-
-        // z(t) = z0 cos(ωz t)
-        const double z = z0 * std::cos(omegaz * t);
-
-        // f(t) = x + i y = A+ e^{-i ω+ t} + A- e^{-i ω- t}
-        std::complex<double> f =
-            Aplus  * std::exp(-I * omega_plus  * t) +
-            Aminus * std::exp(-I * omega_minus * t);
-
-        const double x = std::real(f);
-        const double y = std::imag(f);
-
-        // r_exact vector magnitude
-        const double r_abs = std::sqrt(x*x + y*y + z*z);
-
-        // RK4 value
-        trap_RK4.evolve_RK4(h, 0);
-        arma::vec r_diff_RK4(3, arma::fill::zeros);
-        r_diff_RK4(0) = x - trap_RK4.particles[0].r(0);
-        r_diff_RK4(1) = y - trap_RK4.particles[0].r(1);
-        r_diff_RK4(2) = z - trap_RK4.particles[0].r(2);
-        const double error_RK4 = arma::norm(r_diff_RK4) / r_abs;  // |r_exact - r_RK4|/|r_exact|
-        
-        // Euler value
-        trap_Euler.evolve_forward_Euler(h, 0);
-        arma::vec r_diff_Euler(3, arma::fill::zeros);
-        r_diff_Euler(0) = x - trap_Euler.particles[0].r(0);
-        r_diff_Euler(1) = y - trap_Euler.particles[0].r(1);
-        r_diff_Euler(2) = z - trap_Euler.particles[0].r(2);
-        const double error_Euler = arma::norm(r_diff_Euler) / r_abs;  // |r_exact - r_Euler|/|r_exact|
-        
-        // write: time  |r_exact| rx ry rz for each method (10 columns)
-        out << t << " " << error_RK4 << " " << error_Euler << "\n";
-    }
-
-    out.close();
-}
-
-void evolution_nsteps(int n, PenningTrap& trap)
-{
-    int i = 4000;
-    for (int k = 0; k < 4; ++k) {
-        evolution_RK4_Euler(trap, 50.0, i);
-        i = i * 2;
-    }
-}

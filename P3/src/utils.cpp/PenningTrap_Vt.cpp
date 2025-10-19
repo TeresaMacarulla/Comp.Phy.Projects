@@ -4,15 +4,13 @@
 PenningTrap_Vt::PenningTrap_Vt(double B0_in, double V0_in, double d_in, double omegav_in, double f_in, std::vector<Particle> particles_in)
 : B0(B0_in), V0(V0_in), d(d_in), omegav(omegav_in), f(f_in), particles(particles_in) 
 {
-  
+
 }
 
 // Add a particle to the trap
 void PenningTrap_Vt::add_particle(Particle p_in)
 {
-  
   this->particles.push_back(p_in);
-
 }
 
 // External electric field at point r=(x,y,z)
@@ -22,12 +20,12 @@ arma::vec PenningTrap_Vt::external_E_field(arma::vec r, double t)
   arma::vec E(3, arma::fill::none);
   double sum = (1.0 + f * std::cos(omegav * t));
 
-  E(0) = coeff * r(0) + sum;
-  E(1) = coeff * r(1) + sum;
-  E(2) = -2.0 * coeff * r(2) + sum;
+  E(0) = coeff * r(0) * sum;
+  E(1) = coeff * r(1) * sum;
+  E(2) = -2.0 * coeff * r(2) * sum;
 
   if (arma::norm(r) > d) {
-    E = 0.0;
+    arma::vec E(3, arma::fill::none);
   }
 
   return E;
@@ -42,7 +40,7 @@ arma::vec PenningTrap_Vt::external_B_field(arma::vec r)
   B(2) = B0;
 
   if (arma::norm(r) > d) {
-    B = 0.0;
+    arma::vec B(3, arma::fill::none);
   }
 
   return B;
@@ -107,7 +105,7 @@ arma::vec PenningTrap_Vt::total_force(arma::vec r, arma::vec v, int i, int inter
   else if (n>1){
     F = total_force_external(r, v, t) + total_force_particles(i);
   }
-  // std::cout << " rz " << r(2) << " Total Force " << F(2) << "\n";
+  
   return F;
 }
 
@@ -187,10 +185,10 @@ void PenningTrap_Vt::evolve_forward_Euler(double h, int inter, double t)
 std::size_t PenningTrap_Vt::inside_particles()
 {
   std::size_t cnt = 0;
-    for (const auto& p : particles) {
-        if (arma::norm(p.r) < d) {     // |r| = sqrt(x^2+y^2+z^2)
-            ++cnt;
-        }
+  for (const auto& p : particles) {
+    if (arma::norm(p.r) < d) {     // |r| = sqrt(x^2+y^2+z^2)
+      ++cnt;
     }
+  }
   return cnt;
 }

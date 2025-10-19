@@ -1,4 +1,5 @@
 #include "PenningTrap.hpp"
+#include "PenningTrap_Vt.hpp"
 #include <armadillo>
 #include <fstream>
 #include <iomanip>
@@ -7,14 +8,20 @@
 
 // COMPILING AND LINKING : g++ -std=c++17 -O2 -I include/utils.h src/main.cpp src/utils.cpp/*.cpp -larmadillo -o src/main.exe
 
+// línea 27 de r_error_32000.txt: 4.062500000000e-02 1.379656516560e-03 1.380658828548e-03
+
 // Function declarations
 void evolution_rz(PenningTrap& trap, double T_us, int Nstep);
 void evolution_two(PenningTrap& trap, double T_us, int Nstep, int inter = 1);
 void evolution_RK4_Euler(PenningTrap& trap, double T_us, int Nstep);
+void evolution_nsteps(int n, PenningTrap& trap);
 
 int main() {
     // Define B0, V0 and d in the trap
     PenningTrap trap(96.5, 2.41e6, 500.0, {});
+
+    // Define B0, V0 and d in the trap. Let omegav and f values open.
+    PenningTrap_Vt trap_Vt(96.5, 2.41e6, 500.0, 0.1, 0.2, {});
 
     // Define charge, mass, initial r and initial v of both particles (Ca+)
     arma::vec r1 = {20.0, 0.0, 20.0};
@@ -24,9 +31,12 @@ int main() {
     arma::vec v2 = {0.0, 40.0, 5.0};
     Particle p2(1.0, 40.1, r2, v2);
 
-    //Add particles to the trap
+    //Add particles to the traps
     trap.add_particle(p1);
     trap.add_particle(p2);
+
+    trap_Vt.add_particle(p1);
+    trap_Vt.add_particle(p2);
 
     // Simulate a single particle and track z-direction movement
     //evolution_rz(trap, 50.0, 1000);
@@ -35,11 +45,11 @@ int main() {
     //evolution_two(trap, 50.0, 1000, 0); // last input =0 (no interaction) or =1 (interaction)
 
     // Compare analytical solution, RK4 and Euler for single particle
-    int i = 4000;
-    for (int k = 0; k < 4; ++k) {
-        evolution_RK4_Euler(trap, 50.0, i);
-        i = i * 2;
-    }
+    //evolution_nsteps(4000, trap);
+
+    // Count the number of particles inside trap_Vt
+    std::size_t n = trap_Vt.inside_particles();
+    std::cout << " numer of particles " << n << "\n";
 
     return 0;
 }
@@ -60,8 +70,8 @@ void evolution_rz(PenningTrap& trap, double T_us, int Nstep)
 
     // Main RK4 loop
     for (int k = 0; k < Nstep; ++k) {
-        trap.evolve_RK4(h); 
-        t += h;                    
+        t += h; 
+        trap.evolve_RK4(h, 0);                    
         out << t << "  " << trap.particles[0].r(2) << "\n";  // log r_z of particle 0
     }
 
@@ -108,8 +118,8 @@ void evolution_two(PenningTrap& trap, double T_us, int Nstep, int inter)
 
     // Main RK4 loop
     for (int k = 0; k < Nstep; ++k) {
-        trap.evolve_RK4(h, inter); 
-        t += h;                    
+        t += h;
+        trap.evolve_RK4(h, inter);                     
         out1 << t << "  " << trap.particles[0].r(0) << " "<< trap.particles[0].r(1) << " "<< trap.particles[1].r(0) << " "<<trap.particles[1].r(1) << "\n";
         out2 << t << "  " << trap.particles[0].r(0) << " "<< trap.particles[0].v(0) << " "<< trap.particles[1].r(0) << " "<<trap.particles[1].v(0) << "\n";
         out3 << t << "  " << trap.particles[0].r(2) << " "<< trap.particles[0].v(2) << " "<< trap.particles[1].r(2) << " "<<trap.particles[1].v(2) << "\n";  
@@ -208,4 +218,13 @@ void evolution_RK4_Euler(PenningTrap& trap, double T_us, int Nstep)
     }
 
     out.close();
+}
+
+void evolution_nsteps(int n, PenningTrap& trap)
+{
+    int i = 4000;
+    for (int k = 0; k < 4; ++k) {
+        evolution_RK4_Euler(trap, 50.0, i);
+        i = i * 2;
+    }
 }

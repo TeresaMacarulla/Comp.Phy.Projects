@@ -10,22 +10,22 @@ It includes simulations of single and multiple particles, with both static and t
 P3/
 
 ─ include/utils.h/ # Header files (.hpp)
-Particle.hpp
-PenningTrap.hpp
-PenningTrap_Vt.hpp
-Evolution.hpp
+- Particle.hpp
+- PenningTrap.hpp
+- PenningTrap_Vt.hpp
+- Evolution.hpp
 
 ─ src/ # Source files (.cpp)
-main.cpp # Main program
-Particle.cpp # Particle class implementation
-PenningTrap.cpp # Static trap class (constant V0)
-PenningTrap_Vt.cpp # Time-dependent trap class
-Evolution.cpp # Auxiliary evolution functions
-main.exe # Compiled executable
+- main.cpp # Main program
+- Particle.cpp # Particle class implementation
+- PenningTrap.cpp # Static trap class (constant V0)
+- PenningTrap_Vt.cpp # Time-dependent trap class
+- Evolution.cpp # Auxiliary evolution functions
+- main.exe # Compiled executable
 
 ─ scripts/ # Data files and Python plotting scripts
-*.txt # Simulation outputs
-*.py # Plotting utilities
+- *.txt # Simulation outputs
+- *.py # Plotting utilities
 
 ─ plots/ # Final result figures (.pdf)
 

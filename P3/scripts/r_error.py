@@ -40,10 +40,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-plt.savefig('r_error_RK4.pdf', format='pdf')
-
-# Optionally display
-plt.show()
+#plt.savefig('../plots/r_error_RK4.pdf', format='pdf') 
 
 # Create plot for Euler
 plt.figure(figsize=(7, 5))
@@ -60,7 +57,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-plt.savefig('r_error_Euler.pdf', format='pdf')
+#plt.savefig('../plots/r_error_Euler.pdf', format='pdf')
 
 # Optionally display
 plt.show()

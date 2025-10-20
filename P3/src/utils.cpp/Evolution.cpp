@@ -197,21 +197,14 @@ void fill_trap(PenningTrap_Vt& trap_Vt, double omegav_in, double f_in, int N)
         
         Particle p(1.0, 40.1, r, v);
         trap_Vt.add_particle(p);
-        //trap_Vt.particles.emplace_back(q, m, r, v);
     }
 }
 
 // Simulates many particle system and returns the number of particles that are still inside the trap
-std::size_t evolution_many(PenningTrap_Vt& trap, double T_us, int Nstep, int inter)
+void evolution_many(PenningTrap_Vt& trap, double T_us, int Nstep, int inter)
 {
     // inter = 1 there are interactions between particles
     // inter = 0 there are no interactions between particles
-    std::size_t cnt = 0;
-
-    if (inter != 1 && inter != 0) {
-        std::cout << "Error: 'interaction' must be 1 or 0." << std::endl;
-        std::exit(EXIT_FAILURE);  
-    }
 
     // Compute RK4 time step h = T/N
     const double h = T_us / Nstep;
@@ -225,6 +218,4 @@ std::size_t evolution_many(PenningTrap_Vt& trap, double T_us, int Nstep, int int
         trap.evolve_RK4(h, inter, t);                     
     }
 
-    cnt = trap.inside_particles();
-    return cnt;
 }

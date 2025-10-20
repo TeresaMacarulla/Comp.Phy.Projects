@@ -52,7 +52,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-plt.savefig('ryrx_nointer_plot.pdf', format='pdf')
+#plt.savefig('../plots/ryrx_nointer_plot.pdf', format='pdf')
 
 
 # Create plot ry vs rx for interaction -----------------------------------------------------------------
@@ -68,7 +68,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-plt.savefig('ryrx_yesinter_plot.pdf', format='pdf')
+#plt.savefig('../plots/ryrx_yesinter_plot.pdf', format='pdf')
 
 
 # Create plot vx vs rx for no interaction -----------------------------------------------------------------
@@ -84,7 +84,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-plt.savefig('vxrx_nointer_plot.pdf', format='pdf')
+#plt.savefig('../plots/vxrx_nointer_plot.pdf', format='pdf')
 
 
 # Create plot vz vs rz for no interaction -----------------------------------------------------------------
@@ -100,7 +100,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-plt.savefig('vzrz_nointer_plot.pdf', format='pdf')
+#plt.savefig('../plots/vzrz_nointer_plot.pdf', format='pdf')
 
 
 # Create plot vx vs rx for interaction -----------------------------------------------------------------
@@ -116,7 +116,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-plt.savefig('vxrx_yesinter_plot.pdf', format='pdf')
+#plt.savefig('../plots/vxrx_yesinter_plot.pdf', format='pdf')
 
 
 # Create plot vz vs rz for interaction -----------------------------------------------------------------
@@ -132,7 +132,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-plt.savefig('vzrz_yesinter_plot.pdf', format='pdf')
+#plt.savefig('../plots/vzrz_yesinter_plot.pdf', format='pdf')
 
 # Optionally display
 plt.show()

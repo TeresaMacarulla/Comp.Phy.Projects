@@ -21,7 +21,7 @@ plt.grid(True, linestyle='--', alpha=0.6)
 
 # Save to PDF
 plt.tight_layout()
-# plt.savefig('rz_plot.pdf', format='pdf')
+# plt.savefig('../plots/rz_plot.pdf', format='pdf')
 
 # Optionally display
 plt.show()

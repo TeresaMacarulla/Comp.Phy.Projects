@@ -75,7 +75,8 @@ int main() {
 
         // Zoom in frequency
         // Output file 
-        std::string filename_zoom = "../scripts/trapped_vs_freq_zoom" + std::to_string(f[i]) + ".txt";
+        std::string filename_zoom = "../scripts/trapped_vs_freq_zoom" + std::to_string(f[i]) + ".txt"; 
+        //std::string filename_zoom = "../scripts/trap_vs_freq_zoom_inter" + std::to_string(f[i]) + ".txt"; 
         std::ofstream out_zoom(filename_zoom);
         out_zoom << std::scientific << std::setprecision(12);
 
@@ -85,7 +86,7 @@ int main() {
             PenningTrap_Vt trap_Vt1 = trap_Vt;
 
             // Simulate 100 particles during 500 microseconds
-            evolution_many(trap_Vt1, 500.0, 10000, 0);  // change the last input =0 for no interactions =1 for interactions
+            evolution_many(trap_Vt1, 500.0, 10000, 0);  // change the last input: =0 for no interactions =1 for interactions. 
             std::size_t n_inside = trap_Vt1.inside_particles();
 
             out_zoom << omegav << " " << n_inside << " " << "\n";

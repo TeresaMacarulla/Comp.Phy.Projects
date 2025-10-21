@@ -54,8 +54,6 @@ arma::vec PenningTrap_Vt::force_particle(int i, int j)
 
   double ke = 1.38935333e5;
   r_diff = particles[i].r- particles[j].r;
-  //r_diff(1) = particles[i].r(1)- particles[j].r(1);
-  //r_diff(2) = particles[i].r(2)- particles[j].r(2);
   double r_norm = arma::norm(r_diff);  // |r_i - r_j|
   F = ke * particles[i].q * particles[j].q * r_diff / std::pow(r_norm, 3);
   return F;
@@ -64,10 +62,6 @@ arma::vec PenningTrap_Vt::force_particle(int i, int j)
 // The total force on particle_i from the external fields
 arma::vec PenningTrap_Vt::total_force_external(arma::vec r, arma::vec v, double t)
 {
-  //arma::vec E(3, arma::fill::zeros);
-  //arma::vec B(3, arma::fill::zeros);
-  //arma::vec F(3, arma::fill::zeros);
-
   // Obtain E and B fields from previous functions 
   arma::vec E = external_E_field(r, t);
   arma::vec B = external_B_field(r);
@@ -162,12 +156,6 @@ void PenningTrap_Vt::evolve_RK4(double h, int inter, double t)
     particles[i].v = v0[i] + (kv1[i] + 2.0*kv2[i] + 2.0*kv3[i] + kv4[i]) / 6.0;
   }
 
-  /*
-  // ---- final actualization ----
-  for (std::size_t i = 0; i < n; ++i) {
-    particles[i].r = r0[i] + (kr1[i] + 2.0*kr2[i] + 2.0*kr3[i] + kr4[i]) / 6.0;
-    particles[i].v = v0[i] + (kv1[i] + 2.0*kv2[i] + 2.0*kv3[i] + kv4[i]) / 6.0;
-  }*/
 }
 
 void PenningTrap_Vt::evolve_forward_Euler(double h, int inter, double t)

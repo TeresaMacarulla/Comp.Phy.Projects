@@ -88,7 +88,7 @@ All these `.txt` files are later used in Python scripts to generate the plots.
 
 ---
 
-### **Part 2 — Time-Dependent Potential \( V(t) = V_0 [1 + f \cos(\omega_v t)] \)**
+### **Part 2 — Time-Dependent Potential \( V(t) ~ V_0 [1 + f \cos(\omega_v t)] \)**
 
 In this section, the simulation uses the new class **`PenningTrap_Vt`**,  
 which extends `PenningTrap` by introducing a time–varying electric potential.

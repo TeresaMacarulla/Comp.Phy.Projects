@@ -1,7 +1,13 @@
 #include "macroscopic.hpp"
 
 // Function 1: Create a lattice LxL with random spin values (+1 or -1)
-std::vector<std::vector<int>> initialize_lattice(int L, double p_up, unsigned int seed) {
+std::vector<std::vector<int>> initialize_lattice(int L, double p_up, unsigned int seed, bool ordered) {
+    
+    if (ordered) {
+        std::vector<std::vector<int>> lattice(L, std::vector<int>(L, 1));
+        return lattice;
+    }
+    
     std::vector<std::vector<int>> lattice(L, std::vector<int>(L));
     std::mt19937 rng(seed ? seed : std::random_device{}());
     std::bernoulli_distribution spin_up(p_up);
@@ -12,6 +18,7 @@ std::vector<std::vector<int>> initialize_lattice(int L, double p_up, unsigned in
             lattice[i][j] = spin_up(rng) ? +1 : -1;
         }
     }
+
     return lattice;
 }
 
@@ -142,6 +149,8 @@ MCMCResult run_mcmc_metropolis(std::vector<std::vector<int>>& s, int L, double T
                 E += dE;
             }
         }
+
+        out.E.push_back(E);
 
         // 6) Measurement: after burn-in, sample every 'sample_every' sweeps
         if (sweep > burn_in && ((sweep - burn_in) % sample_every == 0)) {

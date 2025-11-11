@@ -15,28 +15,28 @@ int main() {
           << " Choose an option\n"  
           << " 1. Apply the Markov Chain Monte Carlo approach to sample spin configurations and compute mean energy and magnetisation, heat capacity and susceptibility per spin for an fixed temperature\n"
           << " 2. Study the burn-in time (or equilibration time)\n"
-          << " 3. \n"
-          << " 4. \n"
+          << " 3. Run a simulation choosing the adecuate burn-in Monte Carlo cycles \n"
+          << " 4. Create histograms from ε values and approximate the probability function\n"
           << " 5.\n"
           << " 6. \n";
 
     std::cin >> option;
 
-    int L;
-    std::cout << "Choose L for the lattice dimension (LxL)\n";
-    std::cin >> L;
-
-    double T;
-    std::cout << "Choose temperature (J/kB units)\n";
-    std::cin >> T;
-
-    int MC_sweeps;
-    std::cout << "Choose number of Monte Carlo sweeps\n";
-    std::cin >> MC_sweeps;
-
     int J = 1;
 
-    if (option==1 ){
+    if (option == 1){
+
+        int L;
+        std::cout << "Choose L for the lattice dimension (LxL)\n";
+        std::cin >> L;
+
+        double T;
+        std::cout << "Choose temperature (J/kB units)\n";
+        std::cin >> T;
+
+        int MC_sweeps;
+        std::cout << "Choose number of Monte Carlo sweeps\n";
+        std::cin >> MC_sweeps;
 
         // Create lattice
         auto lattice = initialize_lattice(L);
@@ -73,7 +73,19 @@ int main() {
                   << "Accepted flips = " << res.accepted_flips << "\n";
     }
 
-    if (option==2 ){
+    if (option == 2){
+
+        int L;
+        std::cout << "Choose L for the lattice dimension (LxL)\n";
+        std::cin >> L;
+
+        double T;
+        std::cout << "Choose temperature (J/kB units)\n";
+        std::cin >> T;
+
+        int MC_sweeps;
+        std::cout << "Choose number of Monte Carlo sweeps\n";
+        std::cin >> MC_sweeps;
 
         // Output file 
         std::string filename = "txt/epsilon_T_" + std::to_string(T) + ".txt";
@@ -116,5 +128,65 @@ int main() {
         std::cout << "SEE THE RESULTS: run <<equilibration_results.py>> in <<scripts>>\n";
     }
 
+    if (option == 3){
+
+        int L;
+        std::cout << "Choose L for the lattice dimension (LxL)\n";
+        std::cin >> L;
+
+        double T;
+        std::cout << "Choose temperature (J/kB units)\n";
+        std::cin >> T;
+
+        int MC_sweeps;
+        std::cout << "Choose number of Monte Carlo sweeps\n";
+        std::cin >> MC_sweeps;
+
+        std::cout << "Adecuate Burn-in sweeps for termalization:\n"
+                  << "T = 1 J/kB --> 100 burn-in\n"
+                  << "T = 2.4 J/kB --> 10^5 burn-in\n";
+        int burn_in;
+        std::cout << "Choose an adecuate number of Burn-in sweeps for termalization\n";
+        std::cin >> burn_in;
+
+        // Output file 
+        std::string filename = "txt/eps_T_" + std::to_string(T) + "_burn-in_" + std::to_string(burn_in) + ".txt";
+        std::ofstream out(filename);
+        out << std::scientific << std::setprecision(12);
+
+        // Create lattices and run Monte Carlo cycles
+        auto lat = initialize_lattice(L);
+        auto res = run_mcmc_metropolis(lat, L, T, J, MC_sweeps, burn_in);
+
+        // Post-process results from "run_mcmc_metropolis"
+        const int N = L*L;
+        double eps = 0.0;
+
+        for (size_t k = 0; k < res.E_samples.size(); ++k) {
+            double E = res.E_samples[k];
+            eps = E/N;
+ 
+            out << (k+1) << " " << eps << " " << E << " " << "\n";
+        }
+        out.close();
+
+        std::cout << "The .txt file has been created. You should run this option again until you have two .txt files (T=1 and T=2.4)\n";
+
+    }
+
+    if (option == 4){
+        bool run = false;
+        std::cout << "Did you run <<3. Run a simulation choosing the adecuate burn-in Monte Carlo cycles>>? (write True/False)" << "\n "
+                  << "Check if you have the <<burn-in>> .txt files in P4/txt \n";
+        std::cin >> run;
+
+        if (run){
+    
+        }
+        else {
+            std::cout << "Start again and select <<3. Run a simulation choosing the adecuate burn-in Monte Carlo cycles>> before running this option\n ";    
+        }
+
+    }
     return 0;
 }

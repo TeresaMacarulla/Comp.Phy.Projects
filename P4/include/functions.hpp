@@ -1,5 +1,5 @@
-#ifndef __MACROSCOPIC_HPP__
-#define __MACROSCOPIC_HPP__
+#ifndef __FUNCTIONS_HPP__
+#define __FUNCTIONS_HPP__
 
 #include <vector>
 #include <random>

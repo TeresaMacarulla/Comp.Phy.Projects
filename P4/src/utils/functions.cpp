@@ -1,4 +1,4 @@
-#include "macroscopic.hpp"
+#include "functions.hpp"
 
 // Function 1: Create a lattice LxL with random spin values (+1 or -1)
 std::vector<std::vector<int>> initialize_lattice(int L, double p_up, unsigned int seed, bool ordered) {

@@ -1,4 +1,4 @@
-#include "macroscopic.hpp"
+#include "functions.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -187,6 +187,6 @@ int main() {
     if (option == 6){
 
     }
-    
+
     return 0;
 }

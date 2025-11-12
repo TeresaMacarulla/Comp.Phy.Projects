@@ -16,7 +16,7 @@ int main() {
           << " 1. Apply the Markov Chain Monte Carlo approach to sample spin configurations and compute mean energy and magnetisation, heat capacity and susceptibility per spin for an fixed temperature\n"
           << " 2. Study the burn-in time (or equilibration time)\n"
           << " 3. Run a simulation choosing the adecuate burn-in Monte Carlo cycles \n"
-          << " 4. Create histograms from ε values and approximate the probability function\n"
+          << " 4. \n"
           << " 5.\n"
           << " 6. \n";
 
@@ -125,7 +125,8 @@ int main() {
         }
         out.close();
 
-        std::cout << "SEE THE RESULTS: run <<equilibration_results.py>> in <<scripts>>\n";
+        std::cout << "SEE THE RESULTS: run <<equilibration_results.py>> in <<scripts>>\n"
+                  << "This script is particularly made for T=1 and T=2.4\n";
     }
 
     if (option == 3){
@@ -170,23 +171,22 @@ int main() {
         }
         out.close();
 
-        std::cout << "The .txt file has been created. You should run this option again until you have two .txt files (T=1 and T=2.4)\n";
+        std::cout << "You should run this option until you have two 'burn-in' .txt files (T=1 and T=2.4)\n"
+                  << "Then, you can run <<histogram.py>> in P4/scripts to obtain the histograms of the probability of <ε>\n";
 
     }
 
     if (option == 4){
-        bool run = false;
-        std::cout << "Did you run <<3. Run a simulation choosing the adecuate burn-in Monte Carlo cycles>>? (write True/False)" << "\n "
-                  << "Check if you have the <<burn-in>> .txt files in P4/txt \n";
-        std::cin >> run;
-
-        if (run){
-    
-        }
-        else {
-            std::cout << "Start again and select <<3. Run a simulation choosing the adecuate burn-in Monte Carlo cycles>> before running this option\n ";    
-        }
 
     }
+
+    if (option == 5){
+
+    }
+
+    if (option == 6){
+
+    }
+    
     return 0;
 }

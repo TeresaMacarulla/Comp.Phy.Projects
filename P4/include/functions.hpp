@@ -22,5 +22,9 @@ MCMCResult run_mcmc_metropolis(std::vector<std::vector<int>>& s, int L, double T
     int sample_every = 60,
     unsigned long long seed = 0ULL);
 
+struct parameters {double Cv_per_spin; double chi_per_spin; double eps_mean; double mags_mean;};
+
+parameters compute_parameters(std::vector<double> E_samples, std::vector<double> M_samples, int L, double T);
+
 
 #endif

@@ -161,3 +161,28 @@ MCMCResult run_mcmc_metropolis(std::vector<std::vector<int>>& s, int L, double T
 
     return out;
 }
+
+parameters compute_parameters (std::vector<double> E_samples, std::vector<double> M_samples, int L, double T){
+
+    // Post-process results from "run_mcmc_metropolis"
+    const int N = L*L;
+    double E_mean = 0.0, E2_mean = 0.0, Mabs_mean = 0.0, M2_mean = 0.0;
+    for (size_t k = 0; k < E_samples.size(); ++k) {
+        double E = E_samples[k];
+        double M = M_samples[k];
+        E_mean  += E;
+        E2_mean += E*E;
+        Mabs_mean += std::abs(M);
+        M2_mean += M*M;
+    }
+    int S = (int)E_samples.size();
+    E_mean  /= S;  E2_mean /= S;  Mabs_mean /= S;  M2_mean /= S;
+
+    double beta = 1.0 / T;
+    double Cv_per_spin  = beta*beta * (E2_mean - E_mean*E_mean) / N;
+    double chi_per_spin = beta * (M2_mean - Mabs_mean*Mabs_mean) / N;
+    double eps_mean = E_mean / N;
+    double mags_mean = Mabs_mean / N;
+
+    return {Cv_per_spin, chi_per_spin, eps_mean, mags_mean};
+}

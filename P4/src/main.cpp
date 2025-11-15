@@ -3,8 +3,9 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <chrono>
 
-// COMPILING AND LINKING FROM P4 FILE: g++ -std=c++17 -O2 -I include src/main.cpp src/utils/*.cpp -larmadillo -o src/main.exe
+// COMPILING AND LINKING FROM P4 FILE: g++ -std=c++17 -O2 -I include src/main.cpp src/utils/*.cpp -larmadillo -o src/main.exe -fopenmp
 
 int main() {
 
@@ -16,8 +17,8 @@ int main() {
           << " 1. Apply the Markov Chain Monte Carlo approach to sample spin configurations and compute mean energy and magnetisation, heat capacity and susceptibility per spin for an fixed temperature\n"
           << " 2. Study the burn-in time (or equilibration time)\n"
           << " 3. Run a simulation choosing the adecuate burn-in Monte Carlo cycles \n"
-          << " 4. \n"
-          << " 5.\n"
+          << " 4. Choose some temperature values and run simulations with and without parallelization (OpenMP). Compare the timing.\n"
+          << " 5. Run parallelization from T=2.1 to T=2.4 J/kB and from L=40 to L=100\n"
           << " 6. \n";
 
     std::cin >> option;
@@ -43,33 +44,15 @@ int main() {
 
         auto res = run_mcmc_metropolis(lattice, L, T, J, MC_sweeps);
 
-        // Post-process results from "run_mcmc_metropolis"
-        const int N = L*L;
-        double E_mean = 0.0, E2_mean = 0.0, Mabs_mean = 0.0, M2_mean = 0.0;
-        for (size_t k = 0; k < res.E_samples.size(); ++k) {
-            double E = res.E_samples[k];
-            double M = res.M_samples[k];
-            E_mean  += E;
-            E2_mean += E*E;
-            Mabs_mean += std::abs(M);
-            M2_mean += M*M;
-        }
-        int S = (int)res.E_samples.size();
-        E_mean  /= S;  E2_mean /= S;  Mabs_mean /= S;  M2_mean /= S;
-
-        double beta = 1.0 / T;
-        double Cv_per_spin  = beta*beta * (E2_mean - E_mean*E_mean) / N;
-        double chi_per_spin = beta * (M2_mean - Mabs_mean*Mabs_mean) / N;
-        double eps_mean = E_mean / N;
-        double mags_mean = Mabs_mean / N;
+        auto parameters = compute_parameters (res.E_samples, res.M_samples, L, T);
 
         std::cout << std::fixed << std::setprecision(12);
 
         std::cout << " For a temperature of T = " << T << "J/kB, the results are : " << "\n"
-                  << "Cv/N = " << Cv_per_spin << "\n"
-                  << "χ/N = " << chi_per_spin << "\n"
-                  << "<ε> = " << eps_mean << "\n"
-                  << "<|m|> = " << mags_mean << "\n"
+                  << "Cv/N = " << parameters.Cv_per_spin << "\n"
+                  << "χ/N = " << parameters.chi_per_spin << "\n"
+                  << "<ε> = " << parameters.eps_mean << "\n"
+                  << "<|m|> = " << parameters.mags_mean << "\n"
                   << "Accepted flips = " << res.accepted_flips << "\n";
     }
 
@@ -108,7 +91,6 @@ int main() {
         double eps_d = 0.0;
         double eps_mean_d = 0.0;
         double eps_sum_d = 0.0;
-
 
         for (size_t k = 0; k < res_ordered.E.size(); ++k) {
             double E_o = res_ordered.E[k];
@@ -163,6 +145,7 @@ int main() {
         const int N = L*L;
         double eps = 0.0;
 
+        //POSSIBLE PARALLELIZING
         for (size_t k = 0; k < res.E_samples.size(); ++k) {
             double E = res.E_samples[k];
             eps = E/N;
@@ -171,16 +154,110 @@ int main() {
         }
         out.close();
 
-        std::cout << "You should run this option until you have two 'burn-in' .txt files (T=1 and T=2.4)\n"
+        std::cout << "You should run this option until you have two 'burn-in' .txt files (T=1 and T=2.4 J/kB)\n"
                   << "Then, you can run <<histogram.py>> in P4/scripts to obtain the histograms of the probability of <ε>\n";
 
     }
 
     if (option == 4){
 
+        std::vector<double> temperatures;
+        std::cout << "Enter temperature values in J/kB units (separated by spaces):\n";
+        std::string line;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::getline(std::cin, line);      // read whole line
+        std::istringstream iss(line);
+        double T;
+        while (iss >> T) {
+           temperatures.push_back(T);
+        }
+
+        int L;
+        std::cout << "Choose L for the lattice dimension (LxL)\n";
+        std::cin >> L;
+
+        int MC_sweeps;
+        std::cout << "Choose number of Monte Carlo sweeps\n";
+        std::cin >> MC_sweeps;
+
+        std::cout << "Adecuate Burn-in sweeps for termalization:\n"
+                  << "T = 1 J/kB --> 100 burn-in\n"
+                  << "T = 2.4 J/kB --> 10^5 burn-in\n";
+        int burn_in;
+        std::cout << "Choose an adecuate number of Burn-in sweeps for termalization (considering your temperatures)\n";
+        std::cin >> burn_in;
+
+        // Start measuring time (parallel code)
+        auto tp1 = std::chrono::high_resolution_clock::now();
+      
+        #pragma omp parallel for
+        for (double temp : temperatures) {
+            auto lat = initialize_lattice(L);
+            auto res = run_mcmc_metropolis(lat, L, temp, J, MC_sweeps, burn_in);
+        }
+
+        // Stop measuring time (parallel code)
+        auto tp2 = std::chrono::high_resolution_clock::now();
+
+        // Calculate the elapsed time (parallel code)
+        double tp = std::chrono::duration<double>(tp2 - tp1).count();
+        std::cout << "Timing for parallel code: " << tp << "\n";
+
+
+        // Start measuring time (serial code)
+        auto ts1 = std::chrono::high_resolution_clock::now();
+
+        for (double temp : temperatures) {
+            auto lat = initialize_lattice(L);
+            auto res = run_mcmc_metropolis(lat, L, temp, J, MC_sweeps, burn_in);
+        }
+
+        // Stop measuring time (serial code)
+        auto ts2 = std::chrono::high_resolution_clock::now();
+
+        // Calculate the elapsed time (serial code)
+        double ts = std::chrono::duration<double>(ts2 - ts1).count();
+        std::cout << "Timing for serial code: " << ts << "\n";
+
+        double speedup = ts/tp;
+        std::cout << "The speed-up factor is: " << speedup << "\n";
+
     }
 
     if (option == 5){
+
+        std::vector<int> L_size = {40, 60, 80, 100};
+      
+        for (int L : L_size) {
+            const int N = L*L;
+
+            // Output file 
+            std::string filename = "txt/parameters_L_" + std::to_string(L) + ".txt";
+            std::ofstream out(filename);
+            out << std::scientific << std::setprecision(12);
+
+            #pragma omp parallel for
+            for (int T = 210; T < 241; T += 1) {
+                double temp = T/100.0;
+                auto lat = initialize_lattice(L);
+                auto res = run_mcmc_metropolis(lat, L, temp, J, 100000, 1000);
+
+                auto parameters = compute_parameters (res.E_samples, res.M_samples, L, T);
+                out << temp << " " << parameters.Cv_per_spin << " " << parameters.chi_per_spin << " " << parameters.eps_mean << " " << parameters.mags_mean << "\n";
+
+                /*
+                std::cout << std::fixed << std::setprecision(12);
+
+                std::cout << " For a temperature of T = " << T << "J/kB, the results are : " << "\n"
+                  << "Cv/N = " << parameters.Cv_per_spin << "\n"
+                  << "χ/N = " << parameters.chi_per_spin << "\n"
+                  << "<ε> = " << parameters.eps_mean << "\n"
+                  << "<|m|> = " << parameters.mags_mean << "\n"
+                  << "Accepted flips = " << res.accepted_flips << "\n";
+                */
+            }
+            out.close();
+        }
 
     }
 

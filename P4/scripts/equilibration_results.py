@@ -52,8 +52,6 @@ def main():
         # For the requested combined plot, we assume same x; if not, we warn but still plot both.
         print("Warning: T=1.0 and T=2.4 have different number of MC cycles; plotting on the same axes anyway.")
 
-    # Build unified x-axis for plotting calls you provided
-    # (You asked to use 'n_MC_cycles' directly; we’ll take T=1.0 cycles.)
     n_MC_cycles = n_MC_cycles_T10
 
     # Create figure

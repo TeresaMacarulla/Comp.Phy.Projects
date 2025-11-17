@@ -57,7 +57,7 @@ def make_histogram(txt_name, T):
     PLOTS_DIR = Path(__file__).resolve().parents[1] / "plots"
     PLOTS_DIR.mkdir(exist_ok=True)  
     out_pdf = PLOTS_DIR / f"hist_{txt_name.replace('.txt','')}.pdf"
-    plt.savefig(out_pdf)
+    #plt.savefig(out_pdf)
 
     plt.bar(centers, probs, width=np.diff(edges), align="center",
         alpha=0.7, edgecolor="black",

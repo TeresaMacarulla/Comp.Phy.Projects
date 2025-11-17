@@ -82,7 +82,7 @@ def main():
     plt.tight_layout()
 
     out_pdf = script_dir / "../plots/equilibration_L20.pdf"
-    plt.savefig(out_pdf)
+    #plt.savefig(out_pdf)
     plt.show()
 
 if __name__ == "__main__":

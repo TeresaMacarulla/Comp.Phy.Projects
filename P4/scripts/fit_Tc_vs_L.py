@@ -73,9 +73,10 @@ def main():
     script_dir = Path(__file__).resolve().parent
     plots_dir = script_dir.parent / "plots"
     plots_dir.mkdir(exist_ok=True)
-    out_pdf = plots_dir / "Tc_vs_invL_fit.pdf"
-    fig.savefig(out_pdf, bbox_inches="tight")
-    print(f"Saved figure to: {out_pdf}")
+    #out_pdf = plots_dir / "Tc_vs_invL_fit.pdf"
+    #fig.savefig(out_pdf, bbox_inches="tight")
+    #print(f"Saved figure to: {out_pdf}")
+    plt.show()
 
 if __name__ == "__main__":
     main()

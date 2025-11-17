@@ -54,7 +54,8 @@ plt.xlabel(r"$T$ [J/$k_B$]")
 plt.ylabel(r"$C_V/N$")
 plt.legend()
 plt.tight_layout()
-plt.savefig(os.path.join(PLOTS_DIR, "Cv_vs_T.pdf"))
+#plt.savefig(os.path.join(PLOTS_DIR, "Cv_vs_T.pdf"))
+plt.show()
 
 # 2) chi vs T
 plt.figure()
@@ -81,7 +82,8 @@ plt.xlabel(r"$T$ [J/$k_B$]")
 plt.ylabel(r"$\chi/N$ [$J^{-1}$]")  
 plt.legend()
 plt.tight_layout()
-plt.savefig(os.path.join(PLOTS_DIR, "chi_vs_T.pdf"))
+#plt.savefig(os.path.join(PLOTS_DIR, "chi_vs_T.pdf"))
+plt.show()
 
 # 3) eps vs T
 plt.figure()
@@ -91,7 +93,8 @@ plt.xlabel(r"$T$ [J/$k_B$]")
 plt.ylabel(r"$\langle \epsilon \rangle$ [J]")
 plt.legend()
 plt.tight_layout()
-plt.savefig(os.path.join(PLOTS_DIR, "eps_vs_T.pdf"))
+#plt.savefig(os.path.join(PLOTS_DIR, "eps_vs_T.pdf"))
+plt.show()
 
 # 4) |m| vs T
 plt.figure()
@@ -101,5 +104,6 @@ plt.xlabel(r"$T$ [J/$k_B$]")
 plt.ylabel(r"$\langle |m| \rangle$")
 plt.legend()
 plt.tight_layout()
-plt.savefig(os.path.join(PLOTS_DIR, "mabs_vs_T.pdf"))
+#plt.savefig(os.path.join(PLOTS_DIR, "mabs_vs_T.pdf"))
+plt.show()
 

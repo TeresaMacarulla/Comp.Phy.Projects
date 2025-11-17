@@ -1,4 +1,3 @@
-````markdown
 # 2D Ising Model – Monte Carlo & Finite-Size Scaling
 
 C++ + OpenMP implementation of the 2D Ising model with Metropolis MCMC, plus Python
@@ -227,5 +226,4 @@ produced by the C++ simulations.
 * All simulations use units with (k_B = 1) and coupling (J = 1), so temperature is reported in (J/k_B).
 * OpenMP parallelisation is applied only over **independent temperatures**.
 
-```
 ```

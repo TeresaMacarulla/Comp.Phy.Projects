@@ -156,10 +156,11 @@ void construct_AB_matrices(const arma::cx_vec& a, const arma::cx_vec& b, std::co
 // dt     : time step Δt
 // V      : potential matrix (size M×M, real-valued)
 // a, b   : output complex vectors of length N = (M-2)^2
-void build_ab_vectors(int M, double h, double dt, const arma::mat& V, arma::cx_vec& a, arma::cx_vec& b)
+void build_ab_vectors(int M, double dt, const arma::mat& V, arma::cx_vec& a, arma::cx_vec& b)
 {
     const int N_internal = M - 2;
     const int N          = N_internal * N_internal;
+    const double h = 1.0 / (M - 1);     // grid spacing in [0,1]
 
     a.set_size(N);
     b.set_size(N);
@@ -179,6 +180,207 @@ void build_ab_vectors(int M, double h, double dt, const arma::mat& V, arma::cx_v
 
             a(k) = 1.0 + 4.0 * r + vterm;
             b(k) = 1.0 - 4.0 * r - vterm;
+        }
+    }
+}
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+// Perform the matrix multiplication B·u_n=b
+void matrix_mult(const arma::sp_cx_mat& B, const arma::cx_vec& u_n, arma::cx_vec& b)
+{
+    // Optional safety check
+    if (B.n_cols != u_n.n_rows) {
+        throw std::runtime_error("matrix_mult: size mismatch between B and u_n");
+    }
+
+    b = B * u_n;
+}
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+// Perform one Crank–Nicolson time step:
+// Given current u, compute u_next from A*u_next = B*u.
+//
+// A, B   : sparse complex matrices
+// u      : current solution vector (at time step n)
+// u_next : output vector (at time step n+1)
+//
+// Returns true if spsolve succeeded, false otherwise.
+bool cn_step(const arma::sp_cx_mat& A, const arma::sp_cx_mat& B, const arma::cx_vec& u, arma::cx_vec& u_next)
+{
+    // Basic size checks
+    if (B.n_cols != u.n_rows) {
+        throw std::runtime_error("cn_step: size mismatch between B and u");
+    }
+    if (A.n_rows != A.n_cols || A.n_rows != B.n_rows) {
+        throw std::runtime_error("cn_step: incompatible sizes for A and B");
+    }
+
+    // 1) Compute b = B * u (right-hand side)
+    arma::cx_vec b;
+    matrix_mult(B, u, b);
+
+    // 2) Solve A * u_next = b using sparse solver (SuperLU)
+    bool ok = arma::spsolve(u_next, A, b, "superlu");
+
+    return ok;
+}
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+// Set up initial state u(x,y,t=0) as a Gaussian normalised wave packet
+//
+// Domain: x,y ∈ [0,1], uniform grid with M points in each direction.
+// Dirichlet boundaries: u = 0 at i=0, i=M-1, j=0, j=M-1.
+//
+// Parameters:
+//   M         : number of grid points in x and y (including boundaries)
+//   xc, yc    : centre of the packet
+//   sigma_x   : width in x
+//   sigma_y   : width in y
+//   p_x, p_y  : momenta in x and y
+//
+// Output:
+//   U0        : complex M×M matrix with U0(i,j) = u_ij^0
+//
+void init_gaussian_packet(arma::cx_mat& U0, int M, double xc, double yc, double sigma_x, double sigma_y, double p_x, double p_y)
+{
+    U0.set_size(M, M);
+    U0.zeros();
+
+    const std::complex<double> I(0.0, 1.0);
+    const double h = 1.0 / (M - 1);     // grid spacing in [0,1]
+
+    double norm = 0.0;                  // to accumulate Σ |u_ij|^2
+
+    // Loop over all grid points
+    for (int j = 0; j < M; ++j) {
+        for (int i = 0; i < M; ++i) {
+
+            // Enforce Dirichlet boundary conditions explicitly
+            if (i == 0 || i == M-1 || j == 0 || j == M-1) {
+                U0(i,j) = std::complex<double>(0.0, 0.0);
+                continue;
+            }
+
+            double x = i * h;
+            double y = j * h;
+
+            // Unnormalised Gaussian envelope
+            double exponent =
+                - (x - xc)*(x - xc) / (2.0 * sigma_x * sigma_x)
+                - (y - yc)*(y - yc) / (2.0 * sigma_y * sigma_y);
+
+            double envelope = std::exp(exponent);
+
+            // Plane-wave phase factor e^{i (p_x x + p_y y)}
+            std::complex<double> phase = std::exp(I * (p_x * x + p_y * y));
+
+            std::complex<double> u = envelope * phase;
+
+            U0(i,j) = u;
+            norm += std::norm(u);   // |u|^2
+        }
+    }
+
+    // Normalise so that Σ_{i,j} |u_ij|^2 = 1
+    double inv_sqrt_norm = 1.0 / std::sqrt(norm);
+    #pragma omp parallel for collapse(2)
+    for (int j = 0; j < M; ++j) {
+        for (int i = 0; i < M; ++i) {
+            U0(i,j) *= inv_sqrt_norm;   // boundaries are zero, remain zero
+        }
+    }
+}
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+// Initialise potential V(x,y) for a vertical wall with slits.
+//
+// Domain: [0,1] × [0,1], uniform grid with M points in each direction.
+// V is real-valued here (arma::mat)
+//
+// Inputs:
+//   V                : output matrix, size M×M
+//   M                : number of grid points in x and y (including boundaries)
+//   v0               : barrier height inside the walls
+//   wall_thickness_x : thickness of the wall in x (physical units in [0,1])
+//   wall_x_pos       : x-position of the wall centre (typically 0.5)
+//   wall_sep_length  : length of the wall segment between neighbouring slits
+//   slit_aperture    : slit opening in y (height of each slit, in [0,1])
+//   n_slits          : number of slits (1, 2, 3, …)
+//
+// The slit pattern is constructed symmetric around y = 0.5.
+void init_potential(arma::mat& V, int    M, double v0, double wall_thickness_x, double wall_x_pos, double wall_sep_length, double slit_aperture, int n_slits)
+{
+    V.set_size(M, M);
+    V.zeros();                    // zero potential everywhere as baseline
+
+    const double h = 1.0 / (M - 1);   // grid spacing
+    const double y_center = 0.5;
+
+    // --- 1. Identify x–indices belonging to the vertical wall ----------------
+
+    std::vector<int> wall_i;
+    wall_i.reserve(M);
+
+    for (int i = 0; i < M; ++i) {
+        double x = i * h;
+        if (std::abs(x - wall_x_pos) <= 0.5 * wall_thickness_x) {
+            wall_i.push_back(i);
+        }
+    }
+
+    // If no index falls inside the requested thickness, nothing to do
+    if (wall_i.empty()) {
+        return;
+    }
+
+    // --- 2. Compute slit positions, symmetric around y = 0.5 -----------------
+
+    // Total vertical span occupied by all slits and the separating wall pieces
+    double total_span =
+        n_slits * slit_aperture + (n_slits - 1) * wall_sep_length;
+
+    double y_start = y_center - 0.5 * total_span;   // lower edge of the first slit
+
+    // Precompute slit intervals [y_low, y_high] for each slit
+    std::vector<std::pair<double,double>> slit_intervals;
+    slit_intervals.reserve(n_slits);
+
+    double current_y = y_start;
+    for (int s = 0; s < n_slits; ++s) {
+        double y_low  = current_y;
+        double y_high = current_y + slit_aperture;
+        slit_intervals.emplace_back(y_low, y_high);
+        current_y += slit_aperture + wall_sep_length;
+    }
+
+    // --- 3. Fill wall region with v0, then carve out slits -------------------
+
+    for (int idx_i : wall_i) {
+        for (int j = 0; j < M; ++j) {
+            double y = j * h;
+
+            // Check if (x_i, y_j) lies inside any slit interval
+            bool in_slit = false;
+            for (const auto& interval : slit_intervals) {
+                if (y >= interval.first && y <= interval.second) {
+                    in_slit = true;
+                    break;
+                }
+            }
+
+            if (!in_slit) {
+                // Inside the wall but outside the slits: set high potential
+                V(idx_i, j) = v0;
+            }
+            // else: point lies in a slit -> keep V = 0
         }
     }
 }

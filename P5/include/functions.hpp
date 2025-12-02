@@ -7,6 +7,8 @@
 #include <string>
 #include <complex>
 #include <stdexcept>
+#include <iostream>
+#include <algorithm>
 
 // Function 1: Map internal grid indices (i,j) to a single vector index k.
 int ij_to_k(int i, int j, int M);
@@ -30,6 +32,14 @@ bool cn_step(const arma::sp_cx_mat& A, const arma::sp_cx_mat& B, const arma::cx_
 void init_gaussian_packet(arma::cx_mat& U0, int M, double xc, double yc, double sigma_x, double sigma_y, double p_x, double p_y);
 
 //Function 8: Initialise potential V(x,y) for a vertical wall with slits.
-void init_potential(arma::mat& V, int    M, double v0, double wall_thickness_x, double wall_x_pos, double wall_sep_length, double slit_aperture, int n_slits);
+void init_potential(arma::mat& V, int M, double v0 = 70.0, double wall_thickness_x = 0.02, double wall_x_pos = 0.5, double wall_sep_length = 0.05, double slit_aperture = 0.05, int n_slits = 2);
 
+//Function 9: Print an representation of the potential V.
+void print_potential_structure(const arma::mat& V, double threshold);
+
+//Function 10: Save a grayscale image of the potential V to a PGM file.
+void save_potential_image(const arma::mat& V, const std::string& filename);
+
+//Function 11: Extract internal values of U (M×M) into a vector u of length (M-2)^2
+arma::cx_vec pack_internal_to_vec(const arma::cx_mat& U, int M);
 #endif

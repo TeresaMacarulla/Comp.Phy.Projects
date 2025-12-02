@@ -338,6 +338,7 @@ void init_potential(arma::mat& V, int    M, double v0, double wall_thickness_x, 
 
     // If no index falls inside the requested thickness, nothing to do
     if (wall_i.empty()) {
+        std::cout << "\n break \n";
         return;
     }
 
@@ -383,4 +384,100 @@ void init_potential(arma::mat& V, int    M, double v0, double wall_thickness_x, 
             // else: point lies in a slit -> keep V = 0
         }
     }
+}
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+// Print an representation of the potential V.
+// Cells with V > threshold are shown as '#', others as '.'.
+// To avoid huge outputs, we downsample if M is large.
+void print_potential_structure(const arma::mat& V, double threshold)
+{
+    int Mx = static_cast<int>(V.n_rows); // x index (i)
+    int My = static_cast<int>(V.n_cols); // y index (j)
+
+    // Choose a step to keep width reasonable in terminal
+    int step_x = std::max(1, Mx / 80);  // max ~80 chars wide
+    int step_y = std::max(1, My / 40);  // max ~40 lines high
+
+    std::cout << "Potential structure ( '#' = barrier, '.' = free )\n";
+
+    // Print y from top to bottom so it looks like a usual plot
+    for (int j = My - 1; j >= 0; j -= step_y) {
+        std::cout << "|";
+        for (int i = 0; i < Mx; i += step_x) {
+            if (V(i, j) > threshold) {
+                std::cout << "#";
+            } else {
+                std::cout << ".";
+            }
+        }
+        std::cout << "|\n";
+    }
+    std::cout << std::endl;
+}
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+// Save a grayscale image of the potential V to a PGM file.
+//
+// High potential -> dark, low potential -> light.
+// The image is oriented so that y=0 is at the bottom.
+void save_potential_image(const arma::mat& V, const std::string& filename)
+{
+    int Mx = static_cast<int>(V.n_rows); // x index (i)
+    int My = static_cast<int>(V.n_cols); // y index (j)
+
+    // Find range of V for scaling
+    double Vmin = V.min();
+    double Vmax = V.max();
+    if (Vmax == Vmin) {
+        Vmax = Vmin + 1.0; // avoid division by zero
+    }
+
+    // Image: rows = y (vertical), cols = x (horizontal)
+    // We'll store img(row=j_img, col=i) with j_img=0 at the TOP,
+    // so we flip the y index to get a standard Cartesian view.
+    arma::Mat<unsigned char> img(My, Mx);
+
+    for (int j = 0; j < My; ++j) {
+        for (int i = 0; i < Mx; ++i) {
+
+            double v = V(i, j);
+            double t = (v - Vmin) / (Vmax - Vmin); // normalise to [0,1]
+            t = std::clamp(t, 0.0, 1.0);
+
+            // High V -> dark (0), low V -> light (255)
+            unsigned char gray = static_cast<unsigned char>(255.0 * (1.0 - t));
+
+            int j_img = My - 1 - j;  // flip vertically: y=0 at bottom
+            img(j_img, i) = gray;
+        }
+    }
+
+    // Save as binary PGM image
+    img.save(filename, arma::pgm_binary);
+}
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+// Extract internal values of U (M×M) into a vector u of length (M-2)^2,
+arma::cx_vec pack_internal_to_vec(const arma::cx_mat& U, int M)
+{
+    const int N_internal = M - 2;
+    const int N          = N_internal * N_internal;
+
+    arma::cx_vec u(N);
+
+    for (int j = 1; j <= N_internal; ++j) {      // internal j: 1..M-2
+        for (int i = 1; i <= N_internal; ++i) {  // internal i: 1..M-2
+            int k = ij_to_k(i, j, M);           // 0-based index in [0, N-1]
+            u(k) = U(i, j);                     // take value from U0
+        }
+    }
+
+    return u;
 }

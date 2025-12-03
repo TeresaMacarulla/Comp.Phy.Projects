@@ -97,7 +97,7 @@ int main() {
         if (potential == 1){
             init_potential(V, M);
             cout << "\nThe characteristics of the potential are:\n";
-            cout << "potential value in the wall: 70\n"; 
+            cout << "potential value in the wall: 10^{10}\n"; 
             cout << "wall thickness: 0.02\n";
             cout << "wall position in x: 0.5\n";
             cout << "space between slites: 0.05\n";
@@ -109,10 +109,8 @@ int main() {
         }
         if (potential == 3){
             cout << "\n Enter the characteristics of the potential wall: \n";
-            int M; double v0; double wall_thickness_x; double wall_x_pos; double wall_sep_length; double slit_aperture; int n_slits;
+            double v0; double wall_thickness_x; double wall_x_pos; double wall_sep_length; double slit_aperture; int n_slits;
             arma::mat V = arma::zeros(M, M);
-            cout << "grid dimension: ";
-            cin >> M; 
             cout << "potential value in the wall: ";
             cin >> v0; 
             cout << "wall thickness: ";
@@ -190,12 +188,12 @@ int main() {
 
                 // ---- total probability and deviation from 1 ----
 
-                double prob = 0.0;
-                for (arma::uword k = 0; k < u_next.n_elem; ++k) {
-                    prob += std::norm(u_next(k));   // |u_k|^2
-                }
+                //double prob = 0.0;
+                //for (arma::uword k = 0; k < u_next.n_elem; ++k) {
+                    //prob += std::norm(u_next(k));   // |u_k|^2
+                //}
                 
-                //double prob = arma::accu( arma::square( arma::abs(u_next) ) );
+                double prob = arma::accu( arma::square( arma::abs(u_next) ) );
 
                 double deviation = std::abs(prob - 1.0);
 
@@ -217,6 +215,62 @@ int main() {
             prob_file.close();
             U.save("data/wavefunction_cube.bin");  
             cout << "\n Run the python script from scripts/prob_deviation.py to see your probability deviations results \n";
+
+        }
+
+        if (option == 2){
+
+            arma::cube P(M, M, 3);   // probability
+            arma::cube ReU(M, M, 3); // real part
+            arma::cube ImU(M, M, 3); // imaginary part
+
+            // Example: save the three fields at t = 0, 0.001, 0.002
+            int n0 = 0;
+            int n1 = static_cast<int>(0.001 / dt); // = 40 for dt = 2.5e-5
+            int n2 = static_cast<int>(0.002 / dt); // = 80
+            int k = 0;
+
+            // Time-stepping loop
+            arma::cx_vec u_next;
+
+            for (int n = 0; n < Nt; ++n) {
+
+                bool ok = cn_step(A, B, u, u_next);
+                if (!ok) {
+                    std::cerr << "Crank–Nicolson step failed at n = " << n << "\n";
+                    break;
+                }
+
+               // Convert u_next (internal vector) back to matrix form Unext_mat
+                arma::cx_mat Unext_mat(M, M, arma::fill::zeros);
+                unpack_vec_to_internal(Unext_mat, u_next, M);
+
+                // Store as slice n+1
+                U.slice(n + 1) = Unext_mat;
+
+                // Prepare for next iteration: u <- u_next
+                u = u_next;
+
+                if (n == n0-1 | n == n1-1 | n == n2-1){
+                    const arma::cx_mat& Un = U.slice(n+1);
+                    P.slice(k)   = arma::square( arma::abs(Un) ); // |u|^2
+                    ReU.slice(k) = arma::real(Un);
+                    ImU.slice(k) = arma::imag(Un);
+                    k = k+1;
+                }
+            }
+
+            P.slice(1).save("data/prob_t0.dat",  arma::raw_ascii);
+            P.slice(2).save("data/prob_t1.dat",  arma::raw_ascii);
+            P.slice(3).save("data/prob_t2.dat",  arma::raw_ascii);
+
+            ReU.slice(1).save("data/re_t0.dat",  arma::raw_ascii);
+            ReU.slice(2).save("data/re_t1.dat",  arma::raw_ascii);
+            ReU.slice(3).save("data/re_t2.dat",  arma::raw_ascii);
+
+            ImU.slice(1).save("data/im_t0.dat",  arma::raw_ascii);
+            ImU.slice(2).save("data/im_t1.dat",  arma::raw_ascii);
+            ImU.slice(3).save("data/im_t2.dat",  arma::raw_ascii);
 
         }
     }   

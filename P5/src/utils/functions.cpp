@@ -481,3 +481,31 @@ arma::cx_vec pack_internal_to_vec(const arma::cx_mat& U, int M)
 
     return u;
 }
+
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+
+// Fill an M×M matrix U from the internal vector u (length (M-2)^2).
+// - U will include the boundary points and is initialised to zero.
+// - Internal points (i,j = 1..M-2) are taken from u(k) using ij_to_k.
+void unpack_vec_to_internal(arma::cx_mat& U, const arma::cx_vec& u, int M)
+{
+    const int N_internal = M - 2;
+    const int N          = N_internal * N_internal;
+
+    if ((int)u.n_elem != N) {
+        throw std::runtime_error("unpack_vec_to_internal: wrong length of u");
+    }
+
+    // Allocate M×M and impose Dirichlet boundaries (all zeros)
+    U.set_size(M, M);
+    U.zeros();
+
+    // Copy internal points from u back into U(i,j)
+    for (int j = 1; j <= N_internal; ++j) {      // internal j: 1..M-2
+        for (int i = 1; i <= N_internal; ++i) {  // internal i: 1..M-2
+            int k = ij_to_k(i, j, M);           // same mapping as in pack_internal_to_vec
+            U(i, j) = u(k);
+        }
+    }
+}

@@ -10,12 +10,10 @@ int main() {
 
     // Show message in the terminal
     cout << "\n=== Double-slit setup ===\n"
-          << " Choose an option\n"  
+          << " Choose an option (write a number)\n"  
           << " 1. Create A and B matrices and check. \n"
           << " 2. Initialise the potential. \n"
-          << " 3. Run a simulation. \n"
-          << " 4. \n"
-          << " 5. \n";
+          << " 3. Run a simulation. \n";
 
     cin >> option;
 
@@ -48,7 +46,7 @@ int main() {
 
     if (option == 2){
 
-        cout << "Enter the characteristics of the potential wall: \n";
+        cout << "\nEnter the characteristics of the potential wall: \n";
         int M; double v0; double wall_thickness_x; double wall_x_pos; double wall_sep_length; double slit_aperture; int n_slits;
         arma::mat V = arma::zeros(M, M);
         cout << "grid dimension: ";
@@ -76,15 +74,59 @@ int main() {
     if (option == 3){
 
         int M;
-        cout << "Choose M for the grid dimension\n";
+        cout << "\nChoose M for the grid dimension: ";
         cin >> M;
         double dt;
-        cout << "Choose dt for the timestep\n";
+        cout << "Choose dt for the timestep: ";
         cin >> dt;
+        double T;
+        std::cout << "Choose total simulation time T: ";
+        std::cin  >> T;
+        int Nt = static_cast<int>(T / dt);
         const double h = 1.0 / (M - 1);     // grid spacing in [0,1]
 
+        int potential;
+        cout << "\n Choose your potential (write a number)\n"
+          << " 1. Predetermined\n"  
+          << " 2. V = 0 for the entire grid\n"
+          << " 3. Define your potential\n";
+
+        cin >> potential;
+
         arma::mat V = arma::zeros(M, M);
-        init_potential(V, M);
+        if (potential == 1){
+            init_potential(V, M);
+            cout << "\nThe characteristics of the potential are:\n";
+            cout << "potential value in the wall: 70\n"; 
+            cout << "wall thickness: 0.02\n";
+            cout << "wall position in x: 0.5\n";
+            cout << "space between slites: 0.05\n";
+            cout << "slit aperture: 0.05\n";
+            cout << "number of slits: 2\n";
+        }
+        if (potential == 2){
+            cout << "\nYour don't have a wall.\n";
+        }
+        if (potential == 3){
+            cout << "\n Enter the characteristics of the potential wall: \n";
+            int M; double v0; double wall_thickness_x; double wall_x_pos; double wall_sep_length; double slit_aperture; int n_slits;
+            arma::mat V = arma::zeros(M, M);
+            cout << "grid dimension: ";
+            cin >> M; 
+            cout << "potential value in the wall: ";
+            cin >> v0; 
+            cout << "wall thickness: ";
+            cin >> wall_thickness_x; 
+            cout << "wall position in x: ";
+            cin >> wall_x_pos; 
+            cout << "space between slites: ";
+            cin >> wall_sep_length;
+            cout << "slit aperture: ";
+            cin >> slit_aperture; 
+            cout << "number of slits: ";
+            cin >> n_slits;     
+            init_potential(V, M, v0, wall_thickness_x, wall_x_pos, wall_sep_length, slit_aperture, n_slits); 
+        }
 
         arma::cx_vec a, b;
         build_ab_vectors(M, dt, V, a, b);
@@ -96,15 +138,15 @@ int main() {
         arma::sp_cx_mat A, B;
         construct_AB_matrices(a, b, r, M, A, B);
 
-        cout << "Enter the characteristics of the Gaussian wave packet (u0): \n";
+        cout << "\n Enter the characteristics of the Gaussian wave packet (u0): \n";
         double xc; double yc; double sigma_x; double sigma_y; double p_x; double p_y;
         cout << "centre of the initial wave packet x: ";
         cin >> xc; 
         cout << "centre of the initial wave packet y: ";
         cin >> yc; 
-        cout << "initial widths of the wave packet x: ";
+        cout << "initial width of the wave packet x: ";
         cin >> sigma_x; 
-        cout << "initial widths of the wave packet y: ";
+        cout << "initial width of the wave packet y: ";
         cin >> sigma_y; 
         cout << "wave packet momenta x: ";
         cin >> p_x;
@@ -117,10 +159,66 @@ int main() {
         // pack U0 (matrix) into u (vector of internal points)
         arma::cx_vec u = pack_internal_to_vec(U0, M);
 
-        // now you can do one CN step
-        arma::cx_vec u_next;
-        bool ok = cn_step(A, B, u, u_next);
+        // Allocate cube to store all time states
+        arma::cx_cube U(M, M, Nt+1, arma::fill::zeros);
+        U.slice(0) = U0;   // store initial wavefunction
+
+        cout << "\n Now what? Choose an option\n"
+          << " 1. Study the deviation of the total probability from 1.0.\n"  
+          << " 2. Study time evolution of the 2D probability function.\n"
+          << " 3. Analyze the real and imaginary parts of the wave function.\n"
+          << " 4. Analyze the detections on a screen. \n"
+          << " 5. Create an animations of your simulation.\n";
+
+        cin >> option;
+
+        if (option == 1){
+        
+            // Time-stepping loop
+            arma::cx_vec u_next;
+
+            // A file to store the probability deviation
+            ofstream prob_file("data/prob_deviation.txt");
+
+            for (int n = 0; n < Nt; ++n) {
+
+                bool ok = cn_step(A, B, u, u_next);
+                if (!ok) {
+                    std::cerr << "Crank–Nicolson step failed at n = " << n << "\n";
+                    break;
+                }
+
+                // ---- total probability and deviation from 1 ----
+
+                double prob = 0.0;
+                for (arma::uword k = 0; k < u_next.n_elem; ++k) {
+                    prob += std::norm(u_next(k));   // |u_k|^2
+                }
+                
+                //double prob = arma::accu( arma::square( arma::abs(u_next) ) );
+
+                double deviation = std::abs(prob - 1.0);
+
+                if (prob_file) {
+                    prob_file << n << "  " << deviation << "\n";
+                }
+
+                // Convert u_next (internal vector) back to matrix form Unext_mat
+                arma::cx_mat Unext_mat(M, M, arma::fill::zeros);
+                unpack_vec_to_internal(Unext_mat, u_next, M);
+
+                // Store as slice n+1
+                U.slice(n + 1) = Unext_mat;
+
+                // Prepare for next iteration: u <- u_next
+                u = u_next;
+            }
+        
+            prob_file.close();
+            U.save("data/wavefunction_cube.bin");  
+            cout << "\n Run the python script from scripts/prob_deviation.py to see your probability deviations results \n";
+
+        }
     }   
-    //if (option == 4){}
-    //if (option == 5){} 
+
 }

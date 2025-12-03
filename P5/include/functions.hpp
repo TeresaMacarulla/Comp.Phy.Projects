@@ -42,4 +42,7 @@ void save_potential_image(const arma::mat& V, const std::string& filename);
 
 //Function 11: Extract internal values of U (M×M) into a vector u of length (M-2)^2
 arma::cx_vec pack_internal_to_vec(const arma::cx_mat& U, int M);
+
+//Function 12: Fill an M×M matrix U from the internal vector u (length (M-2)^2)
+void unpack_vec_to_internal(arma::cx_mat& U, const arma::cx_vec& u, int M);
 #endif

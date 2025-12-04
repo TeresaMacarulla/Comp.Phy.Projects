@@ -220,15 +220,19 @@ int main() {
 
         if (option == 2){
 
-            arma::cube P(M, M, 3);   // probability
-            arma::cube ReU(M, M, 3); // real part
-            arma::cube ImU(M, M, 3); // imaginary part
+            arma::cube P(M, M, 3, arma::fill::zeros);   // probability
+            arma::cube ReU(M, M, 3, arma::fill::zeros); // real part
+            arma::cube ImU(M, M, 3, arma::fill::zeros); // imaginary part
 
             // Example: save the three fields at t = 0, 0.001, 0.002
             int n0 = 0;
             int n1 = static_cast<int>(0.001 / dt); // = 40 for dt = 2.5e-5
             int n2 = static_cast<int>(0.002 / dt); // = 80
-            int k = 0;
+
+            // --- t = 0 snapshot directly from U0 ---
+            P.slice(0)   = arma::square( arma::abs(U0) );
+            ReU.slice(0) = arma::real(U0);
+            ImU.slice(0) = arma::imag(U0);
 
             // Time-stepping loop
             arma::cx_vec u_next;
@@ -251,27 +255,32 @@ int main() {
                 // Prepare for next iteration: u <- u_next
                 u = u_next;
 
-                if (n == n0-1 | n == n1-1 | n == n2-1){
-                    const arma::cx_mat& Un = U.slice(n+1);
-                    P.slice(k)   = arma::square( arma::abs(Un) ); // |u|^2
-                    ReU.slice(k) = arma::real(Un);
-                    ImU.slice(k) = arma::imag(Un);
-                    k = k+1;
+                // t = 0.001 and t = 0.002
+                if (n == n1-1 || n == n2-1) {
+                    // n1-1 produces U.slice(n1), which is t = n1 * dt
+                    int idx = (n == n1-1) ? 1 : 2;  // slice index in P/ReU/ImU
+
+                    const arma::cx_mat& Un = U.slice(n + 1);  // or use Unext_mat directly
+
+                    P.slice(idx)   = arma::square( arma::abs(Un) ); // |u|^2
+                    ReU.slice(idx) = arma::real(Un);
+                    ImU.slice(idx) = arma::imag(Un);
                 }
             }
 
-            P.slice(1).save("data/prob_t0.dat",  arma::raw_ascii);
-            P.slice(2).save("data/prob_t1.dat",  arma::raw_ascii);
-            P.slice(3).save("data/prob_t2.dat",  arma::raw_ascii);
+            P.slice(0).save("data/prob_t0.dat",  arma::raw_ascii);
+            P.slice(1).save("data/prob_t1.dat",  arma::raw_ascii);
+            P.slice(2).save("data/prob_t2.dat",  arma::raw_ascii);
 
-            ReU.slice(1).save("data/re_t0.dat",  arma::raw_ascii);
-            ReU.slice(2).save("data/re_t1.dat",  arma::raw_ascii);
-            ReU.slice(3).save("data/re_t2.dat",  arma::raw_ascii);
+            ReU.slice(0).save("data/re_t0.dat",  arma::raw_ascii);
+            ReU.slice(1).save("data/re_t1.dat",  arma::raw_ascii);
+            ReU.slice(2).save("data/re_t2.dat",  arma::raw_ascii);
 
-            ImU.slice(1).save("data/im_t0.dat",  arma::raw_ascii);
-            ImU.slice(2).save("data/im_t1.dat",  arma::raw_ascii);
-            ImU.slice(3).save("data/im_t2.dat",  arma::raw_ascii);
+            ImU.slice(0).save("data/im_t0.dat",  arma::raw_ascii);
+            ImU.slice(1).save("data/im_t1.dat",  arma::raw_ascii);
+            ImU.slice(2).save("data/im_t2.dat",  arma::raw_ascii);
 
+            cout << "\n You can find your .dat files in 'data' file. Run scripts/prob_wavefunction_fields.py to generate the colourmaps. Be aware that this will only work for a grid of M = 201 and dt = 2.5e-5\n";
         }
     }   
 

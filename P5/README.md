@@ -105,11 +105,7 @@ These four options control how data is collected and which `.dat` or `.txt` file
 
 #### Option 1 – Probability conservation
 
-* Computes the total probability at each time step,
-  [
-  P^n = \sum_k |u^n_k|^2,
-  ]
-  and stores the deviation (|P^n - 1|) in `data/prob_deviation.txt`.
+* Computes the total probability at each time step, and stores the deviation (|P^n - 1|) in `data/prob_deviation.txt`.
 * After the run the program prints a hint:
 
   ```text
@@ -121,7 +117,7 @@ These four options control how data is collected and which `.dat` or `.txt` file
 
 * Stores the full 2D fields at selected times (typically (t=0), (t=0.001), (t=0.002)):
 
-  * Probability (p_{ij}^n=|u_{ij}^n|^2): `prob_t0.dat`, `prob_t1.dat`, `prob_t2.dat`
+  * Probability: `prob_t0.dat`, `prob_t1.dat`, `prob_t2.dat`
   * Real part: `re_t0.dat`, `re_t1.dat`, `re_t2.dat`
   * Imaginary part: `im_t0.dat`, `im_t1.dat`, `im_t2.dat`
 * At the end, the program prints a reminder:
@@ -135,11 +131,7 @@ These four options control how data is collected and which `.dat` or `.txt` file
 #### Option 3 – Screen detection probability (Problem 9)
 
 * Mimics a detector screen at (x = 0.8) at time (t = 0.002).
-* Extracts the vertical slice (u(x=0.8,y_j,t=0.002)), computes
-  [
-  p(y_j\mid x=0.8,t=0.002) \propto |u(x=0.8,y_j,t=0.002)|^2,
-  ]
-  and normalises it so that the 1D distribution sums to 1.
+* Extracts the vertical slice (u(x=0.8,y,t=0.002)), computes the probability and normalises it so that the 1D distribution sums to 1.
 * Stores the result in `data/screen_probability_t2.dat` with two columns:
 
   ```text
@@ -154,7 +146,7 @@ These four options control how data is collected and which `.dat` or `.txt` file
 
 #### Option 4 – Animation of the probability evolution
 
-* At each time step, saves the 2D probability field (|u_{ij}^n|^2) into a series of files (e.g. `prob0.dat`, `prob1.dat`, …) in `data/animation` folder.
+* At each time step, saves the 2D probability field into a series of files (e.g. `prob0.dat`, `prob1.dat`, …) in `data/animation` folder.
 * After the run, the program points you to:
 
   ```text
@@ -204,7 +196,7 @@ Here is a brief overview, organised roughly in the order they enter the workflow
   int ij_to_k(int i, int j, int M);
   ```
 
-  Converts 2D indices on the internal ((M-2)\times(M-2)) grid into a 1D index (k\in[0,(M-2)^2-1]).
+  Converts 2D indices on the internal ((M-2)x(M-2)) grid into a 1D index (k).
 
 * **Build the diagonal vectors (a(N)) and (b(N)) from (M), (\Delta t) and (V)**
 
@@ -213,7 +205,7 @@ Here is a brief overview, organised roughly in the order they enter the workflow
                         arma::cx_vec& a, arma::cx_vec& b);
   ```
 
-  Given the potential matrix (V) and time step (\Delta t), constructs the complex diagonal entries that encode both the kinetic and potential contributions for all internal grid points.
+  Given the potential matrix (V) and time step (dt), constructs the complex diagonal entries that encode both the kinetic and potential contributions for all internal grid points.
 
 * **Build sparse matrices (A) and (B) for the 2D Crank–Nicolson scheme**
 
@@ -226,8 +218,7 @@ Here is a brief overview, organised roughly in the order they enter the workflow
                              arma::sp_cx_mat& B);
   ```
 
-  Uses the diagonal vectors `a` and `b` and the parameter `r = i Δt / (2 h^2)` to assemble the sparse matrices (A) and (B) that appear in the linear system
-  (A u^{n+1} = B u^n).
+  Uses the diagonal vectors `a` and `b` and the parameter `r = i Δt / (2 h^2)` to assemble the sparse matrices (A) and (B) that appear in the linear system (A u^{n+1} = B u^n).
 
 * **Print the structure of a sparse matrix to screen**
 
@@ -279,16 +270,15 @@ Here is a brief overview, organised roughly in the order they enter the workflow
                             double p_x, double p_y);
   ```
 
-  Builds the complex Gaussian wave packet on the (M\times M) grid, applies Dirichlet boundary conditions, and normalises it such that
-  (\sum_{i,j} |U^0_{ij}|^2 = 1).
+  Builds the complex Gaussian wave packet on the (M\times M) grid, applies Dirichlet boundary conditions, and normalises it such that the sum of the probability is 1.
 
-* **Extract internal values of (U) ((M\times M)) into a vector (u) of length ((M-2)^2)**
+* **Extract internal values of (U) ((MxM)) into a vector (u)**
 
   ```cpp
   arma::cx_vec pack_internal_to_vec(const arma::cx_mat& U, int M);
   ```
 
-  Reads the internal grid points (1 \leq i,j \leq M-2) from the matrix (U) and packs them into the 1D vector `u` using the `ij_to_k` mapping. Boundary values (Dirichlet zeros) are excluded.
+  Reads the internal grid points from the matrix (U) and packs them into the 1D vector `u` using the `ij_to_k` mapping. Boundary values (Dirichlet zeros) are excluded.
 
 * **Perform the matrix multiplication (B u^n = b)**
 
@@ -310,9 +300,9 @@ Here is a brief overview, organised roughly in the order they enter the workflow
   ```
 
   Wraps the two-stage update
-  (b = B u) and (A u_{\text{next}} = b) using `arma::spsolve`. Returns `true` if the sparse solve succeeds. This is the core routine used inside the main time-stepping loop.
+  (b = B u) and (A u_next = b) using `arma::spsolve`. Returns `true` if the sparse solve succeeds. This is the core routine used inside the main time-stepping loop.
 
-* **Fill an (M\times M) matrix (U) from the internal vector (u) (length ((M-2)^2))**
+* **Fill an (MxM) matrix (U) from the internal vector (u)**
 
   ```cpp
   void unpack_vec_to_internal(arma::cx_mat& U,
@@ -320,7 +310,7 @@ Here is a brief overview, organised roughly in the order they enter the workflow
                               int M);
   ```
 
-  Performs the inverse of `pack_internal_to_vec`: starts from a zero (M\times M) matrix, writes the internal entries from `u` using `ij_to_k`, and leaves boundary points at zero. This is used to reconstruct 2D fields from the 1D state vector for plotting.
+  Performs the inverse of `pack_internal_to_vec`: starts from a zero (MxM) matrix, writes the internal entries from `u` using `ij_to_k`, and leaves boundary points at zero. This is used to reconstruct 2D fields from the 1D state vector for plotting.
 
 ---
 

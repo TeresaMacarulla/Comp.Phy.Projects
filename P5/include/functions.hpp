@@ -34,7 +34,7 @@ void init_gaussian_packet(arma::cx_mat& U0, int M, double xc, double yc, double 
 //Function 8: Initialise potential V(x,y) for a vertical wall with slits.
 void init_potential(arma::mat& V, int M, double v0 = 1.0e10, double wall_thickness_x = 0.02, double wall_x_pos = 0.5, double wall_sep_length = 0.05, double slit_aperture = 0.05, int n_slits = 2);
 
-//Function 9: Print an representation of the potential V.
+//Function 9: Print a representation of the potential V in the terminal.
 void print_potential_structure(const arma::mat& V, double threshold);
 
 //Function 10: Save a grayscale image of the potential V to a PGM file.
@@ -45,4 +45,5 @@ arma::cx_vec pack_internal_to_vec(const arma::cx_mat& U, int M);
 
 //Function 12: Fill an M×M matrix U from the internal vector u (length (M-2)^2)
 void unpack_vec_to_internal(arma::cx_mat& U, const arma::cx_vec& u, int M);
+
 #endif

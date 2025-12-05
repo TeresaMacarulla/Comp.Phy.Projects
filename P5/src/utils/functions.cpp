@@ -316,7 +316,7 @@ void init_gaussian_packet(arma::cx_mat& U0, int M, double xc, double yc, double 
 //   n_slits          : number of slits (1, 2, 3, …)
 //
 // The slit pattern is constructed symmetric around y = 0.5.
-void init_potential(arma::mat& V, int    M, double v0, double wall_thickness_x, double wall_x_pos, double wall_sep_length, double slit_aperture, int n_slits)
+void init_potential(arma::mat& V, int M, double v0, double wall_thickness_x, double wall_x_pos, double wall_sep_length, double slit_aperture, int n_slits)
 {
     V.set_size(M, M);
     V.zeros();                    // zero potential everywhere as baseline
@@ -389,7 +389,7 @@ void init_potential(arma::mat& V, int    M, double v0, double wall_thickness_x, 
 //-------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------
 
-// Print an representation of the potential V.
+// Print an representation of the potential V in the terminal.
 // Cells with V > threshold are shown as '#', others as '.'.
 // To avoid huge outputs, we downsample if M is large.
 void print_potential_structure(const arma::mat& V, double threshold)

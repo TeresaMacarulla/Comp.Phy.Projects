@@ -178,6 +178,7 @@ int main() {
         arma::cube P(M, M, 3, arma::fill::zeros);   // probability
         arma::cube ReU(M, M, 3, arma::fill::zeros); // real part
         arma::cube ImU(M, M, 3, arma::fill::zeros); // imaginary part
+        arma::cube P2(M, M, Nt+1, arma::fill::zeros);   // probability for the animation
 
         // Save the two fields at t = 0, 0.001, 0.002
         int n1 = static_cast<int>(0.001 / dt); // = 40 for dt = 2.5e-5
@@ -187,7 +188,8 @@ int main() {
         P.slice(0)   = arma::square( arma::abs(U0) );
         ReU.slice(0) = arma::real(U0);
         ImU.slice(0) = arma::imag(U0);
-        
+        P2.slice(0) = arma ::square(arma::abs(U0));
+
         for (int n = 0; n < Nt; ++n) {
 
             bool ok = cn_step(A, B, u, u_next);
@@ -236,8 +238,8 @@ int main() {
 
             if (option == 4){
                const arma::cx_mat& Un = U.slice(n+1); 
-               P.slice(n+1)   = arma::square( arma::abs(Un) ); // |u|^2
-               P.slice(n+1).save("data/animation/prob"+ to_string(n) +".dat",  arma::raw_ascii);
+               P2.slice(n+1)   = arma::square( arma::abs(Un) ); // |u|^2
+               P2.slice(n+1).save("data/animation/prob"+ to_string(n) +".dat",  arma::raw_ascii);
             }
             
         }

@@ -1,6 +1,6 @@
 
-````markdown
-# P5 – 2D Time-Dependent Schrödinger Equation (Crank–Nicolson Double Slit)
+
+## P5 – 2D Time-Dependent Schrödinger Equation (Crank–Nicolson Double Slit)
 
 This project implements a numerical solver for the two-dimensional, time-dependent Schrödinger equation for a single particle in a box with Dirichlet boundary conditions. The equation is discretised with a Crank–Nicolson scheme and used to study diffraction and interference of a Gaussian wave packet on one-, two-, and three-slit potentials.
 

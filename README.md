@@ -1,0 +1,1 @@
+This folder contains all the proyects, code, results and report form the course **Compitational Physics**. There are 5 proyects with ther respective proyext report in PDF files and respective code in the folders. 
